@@ -26,13 +26,14 @@ fpath = './'
 
 import unicodedata
 import re
-from ngram import NGram
+#from ngram import NGram
 
 
 
 def parse_name(s):
-    s = s.translate(None,'_\'."()-').lower()
+    s = s.replace('Ø','O')
     s = s.replace('ø','o')
+    s = s.translate(None,'_\'."()-').lower()
     s = unicode(s,'utf-8')
     s = ''.join((c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn'))
     s = s.replace('mrs','').replace('miss','').replace('mr','')
@@ -42,14 +43,59 @@ def parse_name(s):
     s = re.sub(' +',' ',s)
     return s
 
-
 m = pd.read_csv(fpath+'victims.csv',skiprows = 1)
 n = m['name_link/_text']
+victims = {}
+for i in n.map(parse_name):
+    family_name = i.split(',')[0].replace(' ','')
+    first_name = i.split(',')[1].strip().split(' ')
+    victims[family_name] = victims.get(family_name, []) + first_name
 
-#victims = [(i.split(',')[0], i.split(',')[1].strip().split(' ')) for i in n.map(parse_name)]
-victims = {(i.split(',')[0],1) for i in n.map(parse_name)}
 
-#
+m = pd.read_csv(fpath+'survivors.csv',skiprows = 1)
+n = m['name_link/_text']
+survivors = {}
+for i in n.map(parse_name):
+    family_name = i.split(',')[0].replace(' ','')
+    first_name = i.split(',')[1].strip().split(' ')
+    survivors[family_name] = survivors.get(family_name, []) + first_name
+    
+
+def is_survivor(s):
+    # returns True if survivor
+    # returns False if victim
+    # return None if do not know
+    s = parse_name(s)
+    family_name = s.split(',')[0].replace(' ','')
+    first_name = s.split(',')[1].strip().split(' ')
+    
+    survivor = None
+    if family_name in survivors:
+        fname = survivors[family_name]
+        for i in first_name:
+            if i in fname:
+                survivor = True
+    if family_name in victims:
+        fname = victims[family_name]
+        for i in first_name:
+            if i in fname:
+                if survivor == True:
+                    # conflict victims or survivor
+                    survivor = 666
+                else:
+                    survivor = False
+                return survivor
+    return survivor
+    
+
+train_df = pd.read_csv(fpath+'train.csv', header=0)  
+train_df['is_survivor'] = train_df.Name.map(is_survivor)
+
+error =  train_df[train_df['Survived'] != train_df['is_survivor']]
+
+                
+
+
 #survivors_df = pd.read_csv(fpath+'survivors.csv')
 #s_name = survivors_df['name_link/_text']
 #train_df = pd.read_csv(fpath+'train.csv', header=0)  
@@ -100,7 +146,7 @@ victims = {(i.split(',')[0],1) for i in n.map(parse_name)}
 #    test_df.Embarked[ test_df.Embarked.isnull() ] = test_df.Embarked.dropna().mode().values
 ## Again convert all Embarked strings to int
 #test_df.Embarked = test_df.Embarked.map( lambda x: Ports_dict[x]).astype(int)
-#
+
 #
 ## All the ages with no data -> make the median of all Ages
 #median_age = test_df['Age'].dropna().median()
