@@ -26,21 +26,27 @@ STOPWORDS = set(STOPWORDS)
 fpath = 'E:/workspace/data/cdiscount/'
 ifname = fpath+'training.csv'
 ofname = fpath+'training.tsv'
+tfname = fpath+'training4M.tsv'
 
 if not os.path.isfile(ofname):
+    print 'creating :',ofname
     with open(ofname,'w') as f:
         for i,l in enumerate(open(ifname)):
             if i%100000==0:
                 print i
             f.write(l.translate(maketrans(';','\t')))        
-        
-if type(df) is not pd.DataFrame:
+
+if not os.path.isfile(tfname):
+    print 'creating :',tfname
     df = pd.read_csv(ofname,sep='\t')
     df.index = np.random.permutation(df.index)
+    df.head(4000000).to_csv(tfname,sep='\t')
 
+df = pd.read_csv(tfname,sep='\t')
+    
 vectorizer = TfidfVectorizer(
     min_df = 0.00009,
-    max_features=20000,
+    max_features=200000,
     stop_words=None, # 'french' is not supported so far
     smooth_idf=True,
     norm='l2',
@@ -80,7 +86,7 @@ class iterText(object):
     def __len__(self):
         return len(self.df)
         
-nb_train = 100000
+nb_train = 1000000
 nb_test = 10000
 
 train = df.head(nb_train)
@@ -92,7 +98,7 @@ clf = SGDClassifier()
 clf.fit(X,y)
 print clf.score(X, y)
 
-Xt = vectorizer.fit_transform(iterText(test))
+Xt = vectorizer.transform(iterText(test))
 yt = test.Categorie3
 print clf.score(Xt, yt)
 
