@@ -134,8 +134,8 @@ print clf.score(Xt, yt)
 ##############
 # VALIDATION #
 ##############
-vdf = pd.read_csv(sfname,skiprows = (nb_test+nb_train+nb_txt)+1000000,nrows=50000,sep='\t')
-vdf.columns = df.columns
+vdf = pd.read_csv(ofname,skiprows = (nb_test+nb_train+nb_txt)+5000000,nrows=50000,sep='\t')
+vdf.columns = df.columns[1:]
 Xv = vectorizer.transform(iterText(vdf))
 yv = vdf.Categorie3
 print clf.score(Xv, yv)
