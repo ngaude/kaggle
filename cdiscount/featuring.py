@@ -140,12 +140,11 @@ test_X = vectorizer.transform(iterText(test_df))
 # build X_sample as closest X_train neighbors from test_X
 ##########################################################
 
-
-train_df = pd.read_csv(ddir+'trainingShuffle.tsv',sep='\t',nrows = 3000000)
+train_df = pd.read_csv(ddir+'trainingShuffle.tsv',sep='\t',nrows = 9000000)
 train_X = vectorizer.transform(iterText(train_df))
 train_y = train_df.Categorie3
 
-m = 300 # number of train slicing searching for best 
+m = 900 # number of train slicing searching for best 
 n = test_X.shape[0] # 35065
 dist=np.zeros(shape=(n,m),dtype=float)
 idx=np.zeros(shape=(n,m),dtype=int)
@@ -221,7 +220,7 @@ def compare_resultat(f1,f2):
     return cmp_score
 
 
-submit_file = ddir+'resultat4.csv'
+submit_file = ddir+'resultat5.csv'
 #test_df = pd.read_csv(test_file,sep=';')
 test_df['Id_Produit']=test_df['Identifiant_Produit']
 test_df['Id_Categorie'] = classifier.predict(test_X)
