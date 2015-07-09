@@ -201,7 +201,7 @@ classifier = SGDClassifier()
 classifier.fit(sample_X,sample_y,class_weight = sample_w)
 print classifier.score(sample_X,sample_y)
 print classifier.score(train_X[100000:100000+n],train_y[100000:100000+n])
-print classifier.score(train_X[200000:200000+n],train_y[200000:100000+n])
+print classifier.score(train_X[200000:200000+n],train_y[200000:200000+n])
 
 # 85.5% on fitted sample
 # 73.12% on predicted train+
@@ -232,10 +232,13 @@ test_df.to_csv(submit_file,sep=';',index=False)
 ## resultat2.csv scored 20,66930%
 ## resultat3.csv scored 37,52794% (train2test median distance 0.481 and sample size ~39K)
 ## resultat4.csv scored 43,80265% (train2test median distance 0.418 and sample size 47242)
+## resultat5.csv scored 49,27511% (train2test median distance 0.361 and sample size 56812)
 
-# modelisation of score is the following based on sample = 9M and estimated distance = 0.355 = 0.481-math.log(9,3)*(0.481-0.418)
-# estimated score = (1-0.355)*(0.3752794/(1-0.481)) + 1.5*math.log(9,3)/100
-# estimated score = 0.4963876936416185
+# modelisation of score resultat6.csv :
+# based on sample = 15,3M 
+# estimated distance = 0.331 = 0.481-math.log(15.3,3)*(0.481-0.418)*0.96
+# estimated score = (1-0.331)*(0.3752794/(1-0.481)) + 1.5*math.log(15.3,3)/100
+# estimated score = 0.5209866340683579
 
 # we will see ...
 
