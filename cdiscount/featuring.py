@@ -178,7 +178,11 @@ for i in range(n):
 
 best_idx.shape = best_idx.shape[0]*best_idx.shape[1]
 
+plt.hist(np.mean(best_dist,axis=1),bins=100)
+
+print 'test sample size',len(set(best_idx))
 print 'train2test median distance',np.median(best_dist)
+
 
 #indices.shape = indices.shape[0]*indices.shape[1]
 #distances.shape = distances.shape[0]*distances.shape[1]
@@ -210,6 +214,13 @@ print classifier.score(train_X[200000:200000+n],train_y[200000:100000+n])
 ## RESULTAT SUBMISSION #
 ########################
 
+def compare_resultat(f1,f2):
+    df1 = pd.read_csv(f1,sep=';')
+    df2 = pd.read_csv(f1,sep=';')
+    cmp_score = sum(df1.Id_Categorie == df2.Id_Categorie)*1./len(df1)
+    return cmp_score
+
+
 submit_file = ddir+'resultat4.csv'
 #test_df = pd.read_csv(test_file,sep=';')
 test_df['Id_Produit']=test_df['Identifiant_Produit']
@@ -219,13 +230,7 @@ test_df.to_csv(submit_file,sep=';',index=False)
 
 ## comparison with :
 ## resultat1.csv scored 15,87875%
-
-#submit1_file = ddir+'resultat1.csv'
-#submit1_score = 0.1587875
-#test1_df = pd.read_csv(submit1_file,sep=';')
-#same_score = sum(test_df.Id_Categorie == test1_df.Id_Categorie)*1./len(test_df)
-## upper bound estimation of what score should be if X_sample is close enough from X_test
-#test_score = (1-same_score)*sample_score+submit1_score
-
 ## resultat2.csv scored 20,66930%
-## resultat3.csv scored 37,52794% (train2test median distance 0.48159120314380488)
+## resultat3.csv scored 37,52794% (train2test median distance 0.481 and sample size ~39K)
+## resultat4.csv scored 43,80265% (train2test median distance 0.418 and sample size 47242)
+
