@@ -40,5 +40,9 @@ python sampling.py 29 1
 python sampling.py 30 1
 python sampling.py 31 1
 
+python selecting.py
+
+python predicting.py
+
 
 

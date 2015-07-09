@@ -6,16 +6,11 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-import pandas as pd
 import os.path
-from sklearn.feature_extraction.text import TfidfVectorizer
 import os
-from sklearn.linear_model import SGDClassifier
 import numpy as np
 from sklearn.externals import joblib
 import sys
-from sklearn.neighbors import NearestNeighbors
-
 
 # data & working directories
 
@@ -25,61 +20,73 @@ from sklearn.neighbors import NearestNeighbors
 # linux
 ddir = '/home/ngaude/workspace/data/cdiscount/'
 wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
+f_train = ddir+'training_shuffled.csv'
+s_train_prefix = ddir+'joblib/sample_'
+b_train = ddir+'joblib/best_sample'
+b_sample = ddir+'training_best.csv'
 
-j_vec = ddir+'joblib/vectorizer'
-j_test = ddir+'joblib/test'
-j_train = ddir+'joblib/train_'
-s_train = ddir+'joblib/sample_'
+def select_sample(i,adist,aindx):
+    if len(best[i])>100:
+        best[i].sort()
+        best[i] = best[i][:50]
+    best[i].append((adist,aindx))
 
-os.chdir(wdir)
+def process_sample(file_number):
+    s_train = s_train_prefix + format('%02d' % file_number)
+    assert os.path.isfile(s_train)
+    print 'processing best match for',s_train
+    (dist,indx) = joblib.load(s_train)
+    assert dist.shape == indx.shape
+    assert dist.shape[0] == 35065
+    n = dist.shape[0]
+    m = dist.shape[1]
+    for i in range(n):
+#        a = [(dist[i,j],indx[i,j]) for j in range(m) if dist[i,j]<0.66]
+#        best[i] += a
+        for j in range(m):
+            select_sample(i,dist[i,j],indx[i,j])
+    del(dist)
+    del(indx)
+    return
 
-# load a pre-vectorized test text
-assert os.path.isfile(j_test)
-X_test = joblib.load(j_test)
+best = [[] for i in range(35065)]
 
-# load pre-vectorized train text as multiple batch of nrows
-file_number = int(sys.argv[1])
-j_train = j_train + format('%02d' % file_number)
-s_train = s_train + format('%02d' % file_number)
-assert  os.path.isfile(j_train)
-(X_train,y_train) = joblib.load(j_train)
+for i in range(1):
+    process_sample(i)
 
-neighbor_c = 5
-size_c = 10000
+for i in range(35065):
+    best[i].sort()
 
-n = X_test.shape[0] # 35065
-m = X_train.shape[0]/size_c*neighbor_c # 500000/10000
+best_indx = np.zeros(shape =(35065,50),dtype = int)
+best_dist = np.zeros(shape =(35065,50),dtype = float)
 
-dist=np.zeros(shape=(n,m),dtype=float)
-indx=np.zeros(shape=(n,m),dtype=int)
+for i in range(35065):
+    best_dist[i,:] = zip(*best[i])[0][:50]
+    best_indx[i,:] = zip(*best[i])[1][:50]
 
-for i in range(m/neighbor_c):
-    print j_train,':',i,'/',m/neighbor_c
-    off_c = i*size_c
-    X_c = X_train[off_c:off_c+size_c]
-    nbrs = NearestNeighbors(n_neighbors=5, algorithm='brute',metric='cosine').fit(X_c)
-    t_dist,t_indx = nbrs.kneighbors(X_test)
-    dist[:,neighbor_c*i:neighbor_c*(i+1)] = t_dist
-    indx[:,neighbor_c*i:neighbor_c*(i+1)] = t_indx
-
-joblib.dump((dist,indx),s_train)
+joblib.dump((best_dist,best_indx),b_train)
 
 
+(best_dist,best_indx) = joblib.load(b_train)
 
+for i in range(35065):
+neighbor_c = 10
 
-sorting = np.argsort(dist, axis=1)
+plt.hist(np.mean(best_dist[:,:neighbor_c],axis=1),bins=100)
 
-best_dist=np.zeros(shape=(n,3),dtype=float)
-best_idx=np.zeros(shape=(n,3),dtype=int)
+very_best_indx = np.zeros(shape=(35065,neighbor_c))
+very_best_indx = sorted(list(set(best_indx[:,:neighbor_c].flatten())))
 
-for i in range(n):
-    best_dist[i,0] = dist[i,sorting[i,0]]
-    best_dist[i,1] = dist[i,sorting[i,1]]
-    best_dist[i,2] = dist[i,sorting[i,2]]
-    best_idx[i,0] = idx[i,sorting[i,0]]
-    best_idx[i,1] = idx[i,sorting[i,1]]
-    best_idx[i,2] = idx[i,sorting[i,2]]
+# final step, extract the desired df...
+j = 0
+with open(b_sample,'w') as f_output:
+    with open(f_train) as f_input:
+        for i,l in enumerate(f_input):
+            if (i%10000 == 0):
+                print i,'/15786885'
+            if (j<len(very_best_indx) and i == very_best_indx[j]):
+                j=j+1
+                f_output.write(l)
 
-best_idx.shape = best_idx.shape[0]*best_idx.shape[1]
 
 

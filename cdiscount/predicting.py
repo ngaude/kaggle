@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
 Created on Mon Jul 06 23:14:18 2015
@@ -12,6 +13,9 @@ import os
 from sklearn.linear_model import SGDClassifier
 import numpy as np
 from sklearn.externals import joblib
+from sklearn.neighbors import NearestNeighbors
+import sys
+
 
 # data & working directories
 
@@ -22,24 +26,20 @@ from sklearn.externals import joblib
 ddir = '/home/ngaude/workspace/data/cdiscount/'
 wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
 
-j_vec = ddir+'joblib/vectorizer.joblib'
-j_test = ddir+'joblib/test.joblib'
-j_train = ddir+'joblib/train.joblib'
+j_vec = ddir+'joblib/vectorizer'
+j_test = ddir+'joblib/test'
+j_train = ddir+'joblib/train_best'
 
 f_test = ddir+'test.csv'
-f_train = ddir+'trainingShuffle.tsv'
+f_train = ddir+'training_best.csv'
+
+columns = [u'Identifiant_Produit', u'Categorie1', u'Categorie2', u'Categorie3', u'Description', u'Libelle', u'Marque', u'Produit_Cdiscount', u'prix']
 
 os.chdir(wdir)
 
 def touch(fname, times=None):
     with open(fname, 'a'):
         os.utime(fname, times)
-
-def joblib_split_filename(skiprows,nrows):
-    f = ''.join(j_train.split('.')[:-1])
-    f += '_' + str(nrows) + '@' + str(skiprows) + '.'
-    f += j_train.split('.')[1]
-    return f
 
 class iterText(object):
     def __init__(self, df):
@@ -50,7 +50,7 @@ class iterText(object):
     
     def __iter__(self):
         for row_index, row in self.df.iterrows():
-            if row_index%1000==0:
+            if row_index%10000==0:
                 print row_index
             d = m = l = ''
             if type(row.Description) is str:
@@ -64,13 +64,6 @@ class iterText(object):
     
     def __len__(self):
         return len(self.df)
-
-def categorie_freq(df):
-    # compute Categorie3 classe frequency
-    sfreq = len(df)*1.
-    g = df.groupby('Categorie3').Libelle.count()/sfreq
-    return dict(g)
-
 
 def get_vectorizer():
     if os.path.isfile(j_vec):
@@ -111,100 +104,52 @@ else:
     X_test = vectorizer.transform(iterText(df_test))
     joblib.dump(X_test, j_test)
 
-# create pre-vectorized train text as multiple batch of nrows
-maxrows = 15786886
-nrows = 10000
-for skiprows in range(0,maxrows,nrows):
-    nrows = min(maxrows-skiprows,nrows)
-    f = joblib_split_filename(skiprows,nrows)
-    if os.path.isfile(f):
-        # this file is already pending
-        continue
-    print 'creating'+f+'...'
-    df_train = pd.read_csv(f_train,sep='\t',nrows = nrows,skiprows = skiprows)
+# create pre-vectorized train best text
+if os.path.isfile(j_train):
+    (X_train,y_train) = joblib.load(j_train)
+else:
+    touch(j_train)
+    df_train = pd.read_csv(f_train,sep=';',names = columns)
     X_train = vectorizer.transform(iterText(df_train))
     y_train = df_train.Categorie3
-    joblib.dump((X_train,y_train), f)
-    break
+    joblib.dump((X_train,y_train), j_train)
+
+
+def categorie_freq(df):
+    # compute Categorie3 classe frequency
+    sfreq = len(df)*1.
+    g = df.groupby('Categorie3').Libelle.count()/sfreq
+    return dict(g)
+
+w_train = categorie_freq(df_train)
+
+# train a SGD classifier on the X_sample very fitted sample of training according X_train distances
+
+def train_neighborhood_sanity_check(X_train,X_test):
+    n = X_test.shape[0]
+    m = X_train.shape[0]
+    dist = np.zeros(m)
+    for off_c in range(0,m,10000):
+        print off_c,'/',m
+        size_c = min(off_c+10000,m) - off_c
+        X_c = X_train[off_c:off_c+size_c]
+        nbrs = NearestNeighbors(n_neighbors=1, algorithm='brute',metric='cosine').fit(X_test)
+        t_dist,_ = nbrs.kneighbors(X_c)
+        print t_dist.shape
+        dist[off_c:off_c+size_c] = t_dist[:,0]
+    return dist
+
+aa = train_neighborhood_sanity_check(X_train,X_test)
+import matplotlib.pyplot as plt
+plt.hist(aa,bins=200)
+plt.show(block=False)
+## shall be perky gaussian on the left side, centered around ~ 0.3 
 
 
 
-
-
-##########################################################
-# build X_sample as closest X_train neighbors from test_X
-##########################################################
-
-# total sample size  = 15786886
-
-train_df = pd.read_csv(ddir+'trainingShuffle.tsv',sep='\t',nrows = 15750000)
-train_X = vectorizer.transform(iterText(train_df))
-train_y = train_df.Categorie3
-
-m = 1575 # number of train slicing searching for best 
-n = test_X.shape[0] # 35065
-dist=np.zeros(shape=(n,m),dtype=float)
-idx=np.zeros(shape=(n,m),dtype=int)
-
-from sklearn.neighbors import NearestNeighbors
-
-for i in range(m):
-    print i,'/',m
-    size_c = 10000
-    off_c = i*size_c
-    X_t = test_X
-    X_c = train_X[off_c:off_c+size_c]
-    nbrs = NearestNeighbors(n_neighbors=1, algorithm='brute',metric='cosine').fit(X_c)
-    t_dist,t_idx = nbrs.kneighbors(X_t)
-    dist[:,i] = t_dist[:,0]
-    idx[:,i] = t_idx[:,0]+off_c
-
-sorting = np.argsort(dist, axis=1)
-
-best_dist=np.zeros(shape=(n,3),dtype=float)
-best_idx=np.zeros(shape=(n,3),dtype=int)
-
-for i in range(n):
-    best_dist[i,0] = dist[i,sorting[i,0]]
-    best_dist[i,1] = dist[i,sorting[i,1]]
-    best_dist[i,2] = dist[i,sorting[i,2]]
-    best_idx[i,0] = idx[i,sorting[i,0]]
-    best_idx[i,1] = idx[i,sorting[i,1]]
-    best_idx[i,2] = idx[i,sorting[i,2]]
-
-best_idx.shape = best_idx.shape[0]*best_idx.shape[1]
-
-#plt.hist(np.mean(best_dist,axis=1),bins=100)
-
-print 'test sample size',len(set(best_idx))
-print 'train2test median distance',np.median(best_dist)
-
-
-#indices.shape = indices.shape[0]*indices.shape[1]
-#distances.shape = distances.shape[0]*distances.shape[1]
-sample_id = sorted(set(best_idx))
-
-sample_X = train_X[sample_id,:]
-sample_y = train_y[sample_id]
-sample_w = categorie_freq(train_df.loc[sample_id])
-
-
-
-
-
-
-# train a SGD classifier on the X_sample very fitted sample of training according X_test distances
 classifier = SGDClassifier()
-classifier.fit(sample_X,sample_y,class_weight = sample_w)
-print classifier.score(sample_X,sample_y)
-print classifier.score(train_X[100000:100000+n],train_y[100000:100000+n])
-print classifier.score(train_X[200000:200000+n],train_y[200000:200000+n])
-
-# 85.5% on fitted sample
-# 73.12% on predicted train+
-# 73.17% on predicted train++
-# fingers crossed,hope this reflect the submission...
-#sample_score = 0.7315
+classifier.fit(X_train,y_train,class_weight = w_train)
+print classifier.score(X_train,y_train)
 
 ########################
 ## RESULTAT SUBMISSION #
@@ -218,11 +163,11 @@ def compare_resultat(f1,f2):
 
 
 submit_file = ddir+'resultat6.csv'
-#test_df = pd.read_csv(test_file,sep=';')
-test_df['Id_Produit']=test_df['Identifiant_Produit']
-test_df['Id_Categorie'] = classifier.predict(test_X)
-test_df = test_df[['Id_Produit','Id_Categorie']]
-test_df.to_csv(submit_file,sep=';',index=False)
+df_test = pd.read_csv(f_test,sep=';')
+df_test['Id_Produit']=df_test['Identifiant_Produit']
+df_test['Id_Categorie'] = classifier.predict(X_test)
+df_test = df_test[['Id_Produit','Id_Categorie']]
+df_test.to_csv(submit_file,sep=';',index=False)
 
 ## comparison with :
 ## resultat1.csv scored 15,87875%

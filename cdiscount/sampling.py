@@ -64,9 +64,9 @@ def sampling_vectorized_file(file_number):
         nbrs = NearestNeighbors(n_neighbors=5, algorithm='brute',metric='cosine').fit(X_c)
         t_dist,t_indx = nbrs.kneighbors(X_test)
         dist[:,neighbor_c*i:neighbor_c*(i+1)] = t_dist
-        indx[:,neighbor_c*i:neighbor_c*(i+1)] = t_indx
+        indx[:,neighbor_c*i:neighbor_c*(i+1)] = t_indx+off_c+file_number*500000
     joblib.dump((dist,indx),s_train)
-    return
+    return dist,indx
 
 # load a pre-vectorized test text
 assert os.path.isfile(j_test)
