@@ -163,7 +163,7 @@ for i in range(m):
     dist[:,i] = t_dist[:,0]
     idx[:,i] = t_idx[:,0]+off_c
 
-sorting = numpy.argsort(dist, axis=1)
+sorting = np.argsort(dist, axis=1)
 
 best_dist=np.zeros(shape=(n,3),dtype=float)
 best_idx=np.zeros(shape=(n,3),dtype=int)
@@ -178,7 +178,7 @@ for i in range(n):
 
 best_idx.shape = best_idx.shape[0]*best_idx.shape[1]
 
-plt.hist(np.mean(best_dist,axis=1),bins=100)
+#plt.hist(np.mean(best_dist,axis=1),bins=100)
 
 print 'test sample size',len(set(best_idx))
 print 'train2test median distance',np.median(best_dist)
@@ -233,4 +233,11 @@ test_df.to_csv(submit_file,sep=';',index=False)
 ## resultat2.csv scored 20,66930%
 ## resultat3.csv scored 37,52794% (train2test median distance 0.481 and sample size ~39K)
 ## resultat4.csv scored 43,80265% (train2test median distance 0.418 and sample size 47242)
+
+# modelisation of score is the following based on sample = 9M and estimated distance = 0.355 = 0.481-math.log(9,3)*(0.481-0.418)
+# estimated score = (1-0.355)*(0.3752794/(1-0.481)) + 1.5*math.log(9,3)/100
+# estimated score = 0.4963876936416185
+
+# we will see ...
+
 
