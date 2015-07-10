@@ -65,6 +65,7 @@ class iterText(object):
     def __len__(self):
         return len(self.df)
 
+
 def get_vectorizer():
     if os.path.isfile(j_vec):
         vec = joblib.load(j_vec)
@@ -78,7 +79,7 @@ def get_vectorizer():
         STOPWORDS += f.read().split('\n')
     STOPWORDS = set(STOPWORDS)
     vec = TfidfVectorizer(
-        min_df = 0.00005,
+        min_df = 1,
         max_features=123456,
         stop_words=STOPWORDS,
         strip_accents = 'unicode',
@@ -104,15 +105,11 @@ else:
     X_test = vectorizer.transform(iterText(df_test))
     joblib.dump(X_test, j_test)
 
-# create pre-vectorized train best text
-if os.path.isfile(j_train):
-    (X_train,y_train) = joblib.load(j_train)
-else:
-    touch(j_train)
-    df_train = pd.read_csv(f_train,sep=';',names = columns)
-    X_train = vectorizer.transform(iterText(df_train))
-    y_train = df_train.Categorie3
-    joblib.dump((X_train,y_train), j_train)
+# create vectorized best train test
+df_train = pd.read_csv(f_train,sep=';',names = columns)
+X_train = vectorizer.transform(iterText(df_train))
+y_train = df_train.Categorie3
+joblib.dump((X_train,y_train), j_train)
 
 
 def categorie_freq(df):
@@ -164,7 +161,7 @@ def compare_resultat(f1,f2):
     return cmp_score
 
 
-submit_file = ddir+'resultat7.csv'
+submit_file = ddir+'resultat8.csv'
 df_test = pd.read_csv(f_test,sep=';')
 df_test['Id_Produit']=df_test['Identifiant_Produit']
 df_test['Id_Categorie'] = classifier.predict(X_test)

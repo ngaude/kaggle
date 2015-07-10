@@ -34,6 +34,36 @@ f_train = ddir+'training_shuffled_'
 
 os.chdir(wdir)
 
+columns = [u'Identifiant_Produit', u'Categorie1', u'Categorie2', u'Categorie3', u'Description', u'Libelle', u'Marque', u'Produit_Cdiscount', u'prix']
+
+class iterTrain():
+    def __init__(self):
+        
+        self.df = df
+    
+    def __iter__(self):
+        for i in range(32):
+            f_train = ddir+'training_shuffled_'
+
+        for row_index, row in self.df.iterrows():
+            if row_index%10000==0:
+                print row_index
+            d = m = l = ''
+            if type(row.Description) is str:
+                d = row.Description
+            if type(row.Libelle) is str:
+                l = row.Libelle
+            if type(row.Marque) is str:
+                m = row.Marque
+            txt = ' '.join([m]*3+[l]*2+[d])
+            yield txt
+    
+    def __len__(self):
+        return len(self.df)
+
+
+
+
 def touch(fname, times=None):
     with open(fname, 'a'):
         os.utime(fname, times)
@@ -106,7 +136,6 @@ else:
 a = int(sys.argv[1])
 b = int(sys.argv[2])
 
-columns = [u'Identifiant_Produit', u'Categorie1', u'Categorie2', u'Categorie3', u'Description', u'Libelle', u'Marque', u'Produit_Cdiscount', u'prix']
 for i in range(a,a+b):
     print i
     f = f_train + format('%02d' % i)
