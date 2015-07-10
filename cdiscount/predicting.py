@@ -121,6 +121,7 @@ def categorie_freq(df):
     g = df.groupby('Categorie3').Libelle.count()/sfreq
     return dict(g)
 
+df_train = pd.read_csv(f_train,sep=';',names = columns)
 w_train = categorie_freq(df_train)
 
 # train a SGD classifier on the X_sample very fitted sample of training according X_train distances
@@ -147,8 +148,9 @@ plt.show(block=False)
 
 
 
+#classifier = SGDClassifier(class_weight = w_train)
 classifier = SGDClassifier()
-classifier.fit(X_train,y_train,class_weight = w_train)
+classifier.fit(X_train,y_train)
 print classifier.score(X_train,y_train)
 
 ########################
@@ -162,7 +164,7 @@ def compare_resultat(f1,f2):
     return cmp_score
 
 
-submit_file = ddir+'resultat6.csv'
+submit_file = ddir+'resultat7.csv'
 df_test = pd.read_csv(f_test,sep=';')
 df_test['Id_Produit']=df_test['Identifiant_Produit']
 df_test['Id_Categorie'] = classifier.predict(X_test)
@@ -175,8 +177,10 @@ df_test.to_csv(submit_file,sep=';',index=False)
 ## resultat3.csv scored 37,52794% (train2test median distance 0.481 and sample size ~39K)
 ## resultat4.csv scored 43,80265% (train2test median distance 0.418 and sample size 47242)
 ## resultat5.csv scored 49,27511% (train2test median distance 0.361 and sample size 56812)
+## resultat6.csv scored 20,30256% (bugfix a failure in the NEW neighbor selection ...)
+## resultat7.csv scored 49,14332% (train2test median distnace 0.339 and sample size 168901)
 
-# modelisation of score resultat6.csv :
+# modelisation of score resultat7.csv :
 # based on sample = 15,3M 
 # estimated distance = 0.331 = 0.481-math.log(15.3,3)*(0.481-0.418)*0.96
 # estimated score = (1-0.331)*(0.3752794/(1-0.481)) + 1.5*math.log(15.3,3)/100

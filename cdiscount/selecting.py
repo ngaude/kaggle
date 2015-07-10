@@ -26,9 +26,9 @@ b_train = ddir+'joblib/best_sample'
 b_sample = ddir+'training_best.csv'
 
 def select_sample(i,adist,aindx):
-    if len(best[i])>100:
+    if len(best[i])>50:
         best[i].sort()
-        best[i] = best[i][:50]
+        best[i] = best[i][:30]
     best[i].append((adist,aindx))
 
 def process_sample(file_number):
@@ -51,28 +51,29 @@ def process_sample(file_number):
 
 best = [[] for i in range(35065)]
 
-for i in range(1):
+for i in range(32):
     process_sample(i)
 
 for i in range(35065):
     best[i].sort()
 
-best_indx = np.zeros(shape =(35065,50),dtype = int)
-best_dist = np.zeros(shape =(35065,50),dtype = float)
+best_indx = np.zeros(shape =(35065,30),dtype = int)
+best_dist = np.zeros(shape =(35065,30),dtype = float)
 
 for i in range(35065):
-    best_dist[i,:] = zip(*best[i])[0][:50]
-    best_indx[i,:] = zip(*best[i])[1][:50]
+    best_dist[i,:] = zip(*best[i])[0][:30]
+    best_indx[i,:] = zip(*best[i])[1][:30]
 
 joblib.dump((best_dist,best_indx),b_train)
 
+#### reload the wonderful training set ....
 
 (best_dist,best_indx) = joblib.load(b_train)
 
-for i in range(35065):
-neighbor_c = 10
+neighbor_c = 3
 
 plt.hist(np.mean(best_dist[:,:neighbor_c],axis=1),bins=100)
+plt.show(block=False)
 
 very_best_indx = np.zeros(shape=(35065,neighbor_c))
 very_best_indx = sorted(list(set(best_indx[:,:neighbor_c].flatten())))
@@ -82,9 +83,11 @@ j = 0
 with open(b_sample,'w') as f_output:
     with open(f_train) as f_input:
         for i,l in enumerate(f_input):
+            if (j>=len(very_best_indx)):
+                break
             if (i%10000 == 0):
                 print i,'/15786885'
-            if (j<len(very_best_indx) and i == very_best_indx[j]):
+            if (i == very_best_indx[j]):
                 j=j+1
                 f_output.write(l)
 
