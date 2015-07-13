@@ -6,17 +6,80 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-import pandas as pd
 import os.path
-from sklearn.feature_extraction.text import TfidfVectorizer
 import os
-from sklearn.linear_model import SGDClassifier
-import numpy as np
-from sklearn.externals import joblib
 import sys
+import string
+import Stemmer
+import unicodedata
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.externals import joblib
 
+class iterDataset():
+    def __init__(self,fname,count=None,offset=0,y=False,columns=[u'Identifiant_Produit', u'Categorie1', u'Categorie2', u'Categorie3', u'Description', u'Libelle', u'Marque', u'Produit_Cdiscount', u'prix']):
+        stopwords = []
+        with open(wdir+'stop-words_french_1_fr.txt', "r") as f:
+            stopwords += f.read().split('\n')
+        with open(wdir+'stop-words_french_2_fr.txt', "r") as f:
+            stopwords += f.read().split('\n')
+        self.stopwords = set(stopwords)
+        intab = string.punctuation
+        outtab = ' '*len(intab)
+        self.ponctuation_tab = string.maketrans(intab, outtab)
+        self.stemmer = Stemmer.Stemmer('french')
+        self.count = count
+        self.offset = offset
+        self.fname = fname 
+        self.y = y
+        self.columns = columns
+    def __tokenize(self,txt):
+        # remove digits
+        txt = ''.join([i for i in txt if not i.isdigit()])
+        # lower case
+        txt = txt.lower()
+        # remove ponctuation
+        txt = txt.translate(self.ponctuation_tab)
+        # remove accents
+        s1 = unicode(txt,'utf-8')
+        txt = unicodedata.normalize('NFD', s1).encode('ascii', 'ignore')
+        # remove french stop words
+        tokens = [w for w in txt.split(' ') if (len(w)>2) and (w not in self.stopwords)]
+        # french stemming
+        tokens = self.stemmer.stemWords(tokens)
+        return tokens
+    def __iter__(self):
+        if self.y == True:
+            ci = self.columns.index('Categorie3')
+        else:
+            di = self.columns.index('Description')
+            li = self.columns.index('Libelle')
+            mi = self.columns.index('Marque')
+        j = 0
+        for i,line in enumerate(open(self.fname)):
+            if i < self.offset:
+                continue
+            if j%10000==0:
+                print self.fname,j,'/',self.count,'@',self.offset
+            ls = line.split(';')
+            if self.y == True:
+                c = ls[ci]
+                txt = c
+            else:
+                d = ls[di]
+                l = ls[li]
+                m = ls[mi]
+                txt = ' '.join([m]*3+[l]*2+[d])
+                txt = ' '.join(self.__tokenize(txt))
+            yield txt
+            j+=1
+            if (self.count is not None) and (j>self.count):
+                break
+    def __len__(self):
+        return 0
 
-# data & working directories
+##################################
+# path & file
 
 # win
 #ddir = 'E:/workspace/data/cdiscount/'
@@ -25,129 +88,45 @@ import sys
 ddir = '/home/ngaude/workspace/data/cdiscount/'
 wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
 
-j_vec = ddir+'joblib/vectorizer'
-j_test = ddir+'joblib/test'
-j_train = ddir+'joblib/train_'
 
+f_train = ddir+'training_shuffled.csv'
 f_test = ddir+'test.csv'
-f_train = ddir+'training_shuffled_'
 
-os.chdir(wdir)
+##################################
+# CREATE VECTORIZER FROM TRAIN-SET
 
-columns = [u'Identifiant_Produit', u'Categorie1', u'Categorie2', u'Categorie3', u'Description', u'Libelle', u'Marque', u'Produit_Cdiscount', u'prix']
+j_vec = ddir+'joblib/vectorizer'
 
-class iterTrain():
-    def __init__(self):
-        
-        self.df = df
-    
-    def __iter__(self):
-        for i in range(32):
-            f_train = ddir+'training_shuffled_'
-
-        for row_index, row in self.df.iterrows():
-            if row_index%10000==0:
-                print row_index
-            d = m = l = ''
-            if type(row.Description) is str:
-                d = row.Description
-            if type(row.Libelle) is str:
-                l = row.Libelle
-            if type(row.Marque) is str:
-                m = row.Marque
-            txt = ' '.join([m]*3+[l]*2+[d])
-            yield txt
-    
-    def __len__(self):
-        return len(self.df)
-
-
-
-
-def touch(fname, times=None):
-    with open(fname, 'a'):
-        os.utime(fname, times)
-
-class iterText(object):
-    def __init__(self, df):
-        """
-        Yield each document in turn, as a text.
-        """
-        self.df = df
-    
-    def __iter__(self):
-        for row_index, row in self.df.iterrows():
-            if row_index%10000==0:
-                print row_index
-            d = m = l = ''
-            if type(row.Description) is str:
-                d = row.Description
-            if type(row.Libelle) is str:
-                l = row.Libelle
-            if type(row.Marque) is str:
-                m = row.Marque
-            txt = ' '.join([m]*3+[l]*2+[d])
-            yield txt
-    
-    def __len__(self):
-        return len(self.df)
-
-def get_vectorizer():
-    if os.path.isfile(j_vec):
+if os.path.isfile(j_vec):
         vec = joblib.load(j_vec)
-        return vec
-    touch(j_vec)
-    # load french stop words list
-    STOPWORDS = []
-    with open('stop-words_french_1_fr.txt', "r") as f:
-        STOPWORDS += f.read().split('\n')
-    with open('stop-words_french_2_fr.txt', "r") as f:
-        STOPWORDS += f.read().split('\n')
-    STOPWORDS = set(STOPWORDS)
+else:
     vec = TfidfVectorizer(
-        min_df = 0.00005,
-        max_features=123456,
-        stop_words=STOPWORDS,
-        strip_accents = 'unicode',
+        min_df = 0.00001,
+        max_features=165000,
         smooth_idf=True,
         norm='l2',
         sublinear_tf=False,
         use_idf=True,
         ngram_range=(1,3))
-    df_test = pd.read_csv(f_test,sep=';')
-    vec.fit(iterText(df_test))
-    joblib.dump(vec, j_vec)
-    return vec
+    vec.fit(iterDataset(f_train,400000,0))
+    joblib.dump(vec,j_vec)
 
-# grab a vectorizer
-vectorizer = get_vectorizer()
+###################################
+# VECTORIZE TEST-SET
 
-# create a pre-vectorized test text
-if os.path.isfile(j_test):
-    X_test = joblib.load(j_test)
-else:
-    touch(j_test)
-    df_test = pd.read_csv(f_test,sep=';')
-    X_test = vectorizer.transform(iterText(df_test))
-    joblib.dump(X_test, j_test)
+j_test = ddir+'joblib/X_test'
+X_test = vec.transform(iterDataset(f_test,offset=1,columns=['Identifiant_Produit','Description','Libelle','Marque','prix']))
+joblib.dump(X_test,j_test)
 
-# create pre-vectorized train text as multiple batch of nrows
+###################################
+# VECTORIZE TRAIN-SET
 
-a = int(sys.argv[1])
-b = int(sys.argv[2])
+for i in range(32):
+    f_train = ddir+'training_shuffled_'+format('%02d' % i)
+    j_train = ddir+'joblib/XY_train_'+format('%02d' % i)
+    X_train = vec.transform(iterDataset(f_train))
+    y_train = np.array([int(i) for i in iterDataset(f_train,y=True)])
+    joblib.dump((X_train,y_train),j_train)
+    del(X_train)
+    del(y_train)
 
-for i in range(a,a+b):
-    print i
-    f = f_train + format('%02d' % i)
-    j = j_train + format('%02d' % i)
-    if os.path.isfile(j):
-        print j,'already exist...'
-        # this file is already pending
-        continue
-    print 'creating'+j+'from',f,'...'
-    touch(f)
-    df_train = pd.read_csv(f,sep=';',header=None,names=columns)
-    print 'numrows=',len(df_train)
-    X_train = vectorizer.transform(iterText(df_train))
-    y_train = df_train.Categorie3
-    joblib.dump((X_train,y_train), j)
