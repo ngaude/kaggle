@@ -9,24 +9,50 @@ import pandas as pd
 import os.path
 from sklearn.feature_extraction.text import TfidfVectorizer
 import os
+from bs4 import BeautifulSoup
 from sklearn.linear_model import SGDClassifier
 import numpy as np
+import unicodedata 
+import re
 from sklearn.externals import joblib
+import Stemmer
 import matplotlib.pyplot as plt
-
 
 #ddir = 'E:/workspace/data/cdiscount/'
 #wdir = 'C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/'
 ddir = '/home/ngaude/workspace/data/cdiscount/'
 wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
 
-# load french stop words list
-STOPWORDS = []
+stopwords = []
 with open(wdir+'stop-words_french_1_fr.txt', "r") as f:
-    STOPWORDS += f.read().split('\n')
+    stopwords += f.read().split('\n')
+
 with open(wdir+'stop-words_french_2_fr.txt', "r") as f:
-    STOPWORDS += f.read().split('\n')
-STOPWORDS = set(STOPWORDS)
+    stopwords += f.read().split('\n')
+
+stopwords += nltk.corpus.stopwords.words('french')
+stopwords += ['voir', 'presentation']
+stopwords = set(stopwords)
+stemmer = Stemmer.Stemmer('french')
+
+def normalize_txt(txt):
+    # remove html stuff
+    txt = BeautifulSoup(txt,from_encoding='utf-8').get_text()
+    # lower case
+    txt = txt.lower()
+    # special escaping character '...'
+    txt = txt.replace(u'\u2026','.')
+    txt = txt.replace(u'\u00a0',' ')
+    # remove accent btw
+    txt = unicodedata.normalize('NFD', txt).encode('ascii', 'ignore')
+    #txt = unidecode(txt)
+    # remove non alphanumeric char
+    txt = re.sub('[^a-z_-]', ' ', txt)
+    # remove french stop words
+    tokens = [w for w in txt.split() if (len(w)>2) and (w not in stopwords)]
+    # french stemming
+    tokens = stemmer.stemWords(tokens)
+    return ' '.join(tokens)
 
 def cat_freq(df):
     # compute Categorie3 classe frequency
@@ -47,11 +73,11 @@ class iterText(object):
                 print row_index
             d = m = l = ''
             if type(row.Description) is str:
-                d = row.Description
+                d = normalize_txt(row.Description)
             if type(row.Libelle) is str:
-                l = row.Libelle
-            if type(row.Marque) is str:
-                m = row.Marque
+                l = normalize_txt(row.Libelle)
+            if (type(row.Marque) is str) and (row.Marque != 'AUCUNE'):
+                m = re.sub('[^a-zA-Z0-9]', '_', row.Marque).lower()
             txt = ' '.join([m]*3+[l]*2+[d])
             yield txt
     
@@ -64,11 +90,11 @@ test_df = pd.read_csv(test_file,sep=';')
 vectorizer = TfidfVectorizer(
     min_df = 0.00005,
     max_features=123456,
-    stop_words=STOPWORDS,
+    stop_words=stopwords,
     strip_accents = 'unicode',
     smooth_idf=True,
     norm='l2',
-    sublinear_tf=False,
+    sublinear_tf=True,
     use_idf=True,
     ngram_range=(1,3))
 
@@ -135,6 +161,7 @@ for i in range(n):
 best_idx.shape = best_idx.shape[0]*best_idx.shape[1]
 
 plt.hist(np.mean(best_dist,axis=1),bins=100)
+plt.show(block=False)
 
 print 'test sample size',len(set(best_idx))
 print 'train2test median distance',np.median(best_dist)
@@ -182,7 +209,7 @@ print classifier.score(train_X[200000:200000+n],train_y[200000:100000+n])
 ## RESULTAT SUBMISSION #
 ########################
 
-submit_file = ddir+'resultat13.csv'
+submit_file = ddir+'resultat14.csv'
 test_file = ddir+'test.csv'
 test_df = pd.read_csv(test_file,sep=';')
 test_X = joblib.load(ddir+'joblib/test_X')
@@ -198,4 +225,5 @@ test_df.to_csv(submit_file,sep=';',index=False)
 ## resultat4.csv scored 43,80265% (train2test median distance 0.418 and sample size 47242)
 
 ## resultat13.csv ... 39,46479%....
+## resultat14.csv ... 40,28995%.... + stemming/removal ,....
 
