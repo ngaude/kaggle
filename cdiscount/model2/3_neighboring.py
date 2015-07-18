@@ -64,6 +64,7 @@ joblib.dump((Dneighbor,Ineighbor),ddir+'joblib/DIneighbor')
 # select for each test the 5-closest neighbors
 neighbors_indices = sorted(set(Ineighbor[:,:k].flatten()))
 
+
 # save neighbors
 Yneighbor = Ytrain[neighbors_indices]
 del Ytrain
