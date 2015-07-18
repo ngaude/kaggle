@@ -118,62 +118,69 @@ joblib.dump((train_X,train_y),ddir+'joblib/train_XY')
 ##########################################################
 # build X_sample as closest X_train neighbors from test_X
 ##########################################################
-"""
 
-test_X = joblib.load(ddir+'joblib/test_X')
-(train_X,train_y) = joblib.load(ddir+'joblib/train_XY')
-"""
-
-m = 1000 # number of train slicing searching for best 
-n = test_X.shape[0] # 35065
-dist=np.zeros(shape=(n,m),dtype=float)
-idx=np.zeros(shape=(n,m),dtype=int)
-nrows = train_X.shape[0]
-
+import time
 from sklearn.neighbors import NearestNeighbors
 
-assert nrows % m == 0
 
-for i in range(m):
-    print i,'/',m
-    size_c = nrows/m
-    off_c = i*size_c
-    X_t = test_X
-    X_c = train_X[off_c:off_c+size_c]
-    nbrs = NearestNeighbors(n_neighbors=1, algorithm='brute',metric='cosine').fit(X_c)
-    t_dist,t_idx = nbrs.kneighbors(X_t)
-    dist[:,i] = t_dist[:,0]
-    idx[:,i] = t_idx[:,0]+off_c
-
-sorting = np.argsort(dist, axis=1)
-
-best_dist=np.zeros(shape=(n,3),dtype=float)
-best_idx=np.zeros(shape=(n,3),dtype=int)
-
-for i in range(n):
-    best_dist[i,0] = dist[i,sorting[i,0]]
-    best_dist[i,1] = dist[i,sorting[i,1]]
-    best_dist[i,2] = dist[i,sorting[i,2]]
-    best_idx[i,0] = idx[i,sorting[i,0]]
-    best_idx[i,1] = idx[i,sorting[i,1]]
-    best_idx[i,2] = idx[i,sorting[i,2]]
-
-best_idx.shape = best_idx.shape[0]*best_idx.shape[1]
-
-plt.hist(np.mean(best_dist,axis=1),bins=100)
-plt.show(block=False)
-
-print 'test sample size',len(set(best_idx))
-print 'train2test median distance',np.median(best_dist)
+(Xtrain,Ytrain) = joblib.load(ddir+'joblib/train_XY')
+Xtest = joblib.load(ddir+'joblib/test_X')
 
 
-#indices.shape = indices.shape[0]*indices.shape[1]
-#distances.shape = distances.shape[0]*distances.shape[1]
-sample_id = sorted(set(best_idx))
+test_count = Xtest.shape[0]
+train_count = Xtrain.shape[0]
 
-sample_X = train_X[sample_id,:]
-sample_y = train_y[sample_id]
-sample_w = cat_freq(train_df.loc[sample_id])
+neighbors = [[] for i in range(test_count)]
+
+def neighbor_select(test_id,dist,indx):
+    if len(neighbors[test_id])>100:
+        neighbors[test_id].sort()
+        neighbors[test_id] = neighbors[test_id][:50]
+    neighbors[test_id]+= zip(dist,indx)
+
+def neighbor_distance(k):
+    return np.median([ zip(*tup[:k])[0] if tup else [1]*k for tup in neighbors])
+
+batch_size = 1000
+k = 5
+start_time = time.time()
+for i in range(0,train_count,batch_size):
+    if (i/batch_size)%10==0:
+        print 'neighbor:',i,'/',train_count,'median distance=',neighbor_distance(k),'time=',int(time.time() - start_time),'s'
+    Xb = Xtrain[i:i+min(batch_size,train_count-i)]
+    nbrs = NearestNeighbors(n_neighbors=k, algorithm='brute',metric='cosine').fit(Xb)
+    dist,indx = nbrs.kneighbors(Xtest)
+    for j in range(0,test_count):
+        neighbor_select(j,dist[j,:],indx[j,:]+i)
+
+Ineighbor = np.zeros(shape=(test_count,50),dtype = int)
+Dneighbor = np.zeros(shape=(test_count,50),dtype = float)
+
+for i in range(test_count):
+    neighbors[i].sort()
+    Dneighbor[i,:] = zip(*neighbors[i])[0][:50]
+    Ineighbor[i,:] = zip(*neighbors[i])[1][:50]
+
+#save raw list of the top 50 at least neighbors
+joblib.dump((Dneighbor,Ineighbor),ddir+'joblib/DIneighbor')
+
+# select for each test the 5-closest neighbors
+neighbors_indices = sorted(set(Ineighbor[:,:k].flatten()))
+
+
+# save neighbors
+Yneighbor = Ytrain[neighbors_indices]
+Xneighbor = Xtrain[neighbors_indices]
+
+nrows = train_count
+columns = ['Identifiant_Produit','Categorie1','Categorie2','Categorie3','Description','Libelle','Marque','Produit_Cdiscount','prix'] 
+train_df = pd.read_csv(ddir+'training_shuffled.csv',sep=';',nrows = nrows,names = columns)
+
+sample_X = Xtrain[neighbors_indices,:]
+sample_y = Ytrain[neighbors_indices]
+sample_w = cat_freq(train_df.loc[neighbors_indices])
+del Ytrain
+del Xtrain
 
 joblib.dump((sample_X,sample_y,sample_w),ddir+'joblib/sampleXYW')
 
@@ -209,7 +216,7 @@ print classifier.score(train_X[200000:200000+n],train_y[200000:100000+n])
 ## RESULTAT SUBMISSION #
 ########################
 
-submit_file = ddir+'resultat14.csv'
+submit_file = ddir+'resultat15.csv'
 test_file = ddir+'test.csv'
 test_df = pd.read_csv(test_file,sep=';')
 test_X = joblib.load(ddir+'joblib/test_X')
@@ -225,5 +232,6 @@ test_df.to_csv(submit_file,sep=';',index=False)
 ## resultat4.csv scored 43,80265% (train2test median distance 0.418 and sample size 47242)
 
 ## resultat13.csv ... 39,46479%....
-## resultat14.csv ... 40,28995%.... + stemming/removal ,....
+## resultat14.csv ... 40,28995%.... + stemming/removal (k=3),....
+## resultat15.csv ... 38,11243%.... + exact k-nn (k=5) ,....
 
