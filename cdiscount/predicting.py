@@ -104,6 +104,7 @@ if (df is dfvalid):
     fname = ddir+'/joblib/log_proba_valid'
 else:
     fname = ddir+'/joblib/log_proba_test'
+
 joblib.dump((stage1_log_proba,stage2_log_proba,stage3_log_proba),fname)
 
 ##################
@@ -135,21 +136,20 @@ predict_cat1 = [itocat1[i] for i in np.argmax(stage1_log_proba,axis=1)]
 predict_cat2 = [itocat2[i] for i in np.argmax(stage2_log_proba,axis=1)]
 predict_cat3 = [itocat3[i] for i in np.argmax(stage3_log_proba,axis=1)]
 
-if df is dfvalid:
-    score_cat1 = sum(dfvalid.Categorie1 == predict_cat1)*1.0/n
-    score_cat2 = sum(dfvalid.Categorie2 == predict_cat2)*1.0/n
-    score_cat3 = sum(dfvalid.Categorie3 == predict_cat3)*1.0/n
-    print 'dfvalid scores =',score_cat1,score_cat2,score_cat3
-else:
-    submit():
-
-
 def submit():
     submit_file = ddir+'resultat.csv'
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = predict_cat3
     df= df[['Id_Produit','Id_Categorie']]
     df.to_csv(submit_file,sep=';',index=False)
+
+if df is dfvalid:
+    score_cat1 = sum(dfvalid.Categorie1 == predict_cat1)*1.0/n
+    score_cat2 = sum(dfvalid.Categorie2 == predict_cat2)*1.0/n
+    score_cat3 = sum(dfvalid.Categorie3 == predict_cat3)*1.0/n
+    print 'dfvalid scores =',score_cat1,score_cat2,score_cat3
+else:
+    submit(df)
 
 #############################################################################
 # nrows = 100K, dfvalid scores = 0.681795125722 0.443322625057 0.296973503055
