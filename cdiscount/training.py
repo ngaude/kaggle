@@ -65,7 +65,7 @@ def classifier(df,vec,target):
 # Stage 1/2/3 training 
 # stage1 : 1 classifier => 52 classes
 # stage2 : 52 classifiers => 536 classes
-# stage3 : 536 classifiers => 4789 classes
+# stage3 : 536 classifiers => >5K classes
 ########################################
 
 # load data

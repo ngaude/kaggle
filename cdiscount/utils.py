@@ -25,6 +25,7 @@ itocat3 = list(np.unique(rayon.Categorie3))
 cat3toi = {cat3:i for i,cat3 in enumerate(itocat3)}
 cat3tocat2 = rayon.set_index('Categorie3').Categorie2.to_dict()
 cat3tocat1 = rayon.set_index('Categorie3').Categorie1.to_dict()
+cat2tocat1 = rayon[['Categorie2','Categorie1']].drop_duplicates().set_index('Categorie2').Categorie1.to_dict()
 cat1count = len(np.unique(rayon.Categorie1))
 cat2count = len(np.unique(rayon.Categorie2))
 cat3count = len(np.unique(rayon.Categorie3))
