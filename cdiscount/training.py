@@ -128,7 +128,7 @@ for i,cat in enumerate(cat2):
         continue
     vec = vectorizer(df)
     cla = classifier(df,vec,"Categorie3")
-    dfv = dfvalid[dfvalid.Categorie2 == cat].reset_index()
+    dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index()
     if len(dfv)==0:
         print 'classifier',basename(fname),'cannot be validated...'
         continue

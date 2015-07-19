@@ -7,11 +7,28 @@ from bs4 import BeautifulSoup
 import re
 import unicodedata 
 import time
-
+import pandas as pd
+import numpy as np
 #ddir = 'E:/workspace/data/cdiscount/'
 #wdir = 'C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/'
 ddir = '/home/ngaude/workspace/data/cdiscount/'
 wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
+
+
+rayon = pd.read_csv(ddir+'rayon.csv',sep=';')
+
+itocat1 = list(np.unique(rayon.Categorie1))
+cat1toi = {cat1:i for i,cat1 in enumerate(itocat1)}
+itocat2 = list(np.unique(rayon.Categorie2))
+cat2toi = {cat2:i for i,cat2 in enumerate(itocat2)}
+itocat3 = list(np.unique(rayon.Categorie3))
+cat3toi = {cat3:i for i,cat3 in enumerate(itocat3)}
+cat3tocat2 = rayon.set_index('Categorie3').Categorie2.to_dict()
+cat3tocat1 = rayon.set_index('Categorie3').Categorie1.to_dict()
+cat1count = len(np.unique(rayon.Categorie1))
+cat2count = len(np.unique(rayon.Categorie2))
+cat3count = len(np.unique(rayon.Categorie3))
+
 
 stopwords = []
 with open(wdir+'stop-words_french_1_fr.txt', "r") as f:
