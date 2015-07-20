@@ -7,7 +7,7 @@ Created on Mon Jul 06 23:14:18 2015
 """
 
 from utils import wdir,ddir,header,normalize_file
-from utils import MarisaTfidfVectorizer,vectorizer,iterText
+from utils import MarisaTfidfVectorizer,iterText
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import SGDClassifier
@@ -70,7 +70,7 @@ def classifier(df,vec,target):
 
 # load data
 
-nrows = 100000
+nrows = 1000000
 dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header(),nrows=nrows).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 
