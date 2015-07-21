@@ -31,11 +31,15 @@ def score(df,vec,cla,target):
     sc = cla.score(X,Y)
     return sc
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 def vectorizer(df):
     # 1M max_features should fit in memory, 
     # OvA will be at max 184 classes, 
     # so we can fit coef_ =  1M*184*8B ~ 1GB in memory easily
-    vec = MarisaTfidfVectorizer(
+    #
+    #vec = MarisaTfidfVectorizer(
+    vec = TfidfVectorizer(
         min_df = 1,
         stop_words = None,
         max_features=1000000,
@@ -70,7 +74,7 @@ def classifier(df,vec,target):
 
 # load data
 
-nrows = 1000000
+nrows = 3000000
 dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header(),nrows=nrows).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 
@@ -107,10 +111,11 @@ for i,cat in enumerate(cat1):
     if len(dfv)==0:
         print 'classifier',basename(fname),'cannot be validated...'
         continue
-    sc = score(dfv,vec,cla,"Categorie2")
-    print '*'*50
-    print 'classifier',basename(fname),'valid score',sc
-    print '*'*50
+    else:
+        sc = score(dfv,vec,cla,"Categorie2")
+        print '*'*50
+        print 'classifier',basename(fname),'valid score',sc
+        print '*'*50
     joblib.dump((labels,vec,cla),fname)
 
 # stage 3 training
@@ -128,13 +133,14 @@ for i,cat in enumerate(cat2):
         continue
     vec = vectorizer(df)
     cla = classifier(df,vec,"Categorie3")
-    dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index()
+    dfv = dfvalid[dfvalid.Categorie2 == cat].reset_index()
     if len(dfv)==0:
         print 'classifier',basename(fname),'cannot be validated...'
         continue
-    sc = score(dfv,vec,cla,"Categorie3")
-    print '*'*50
-    print 'classifier',basename(fname),'valid score',sc
-    print '*'*50
+    else:
+        sc = score(dfv,vec,cla,"Categorie3")
+        print '*'*50
+        print 'classifier',basename(fname),'valid score',sc
+        print '*'*50
     joblib.dump((labels,vec,cla),fname)
 
