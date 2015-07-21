@@ -161,4 +161,9 @@ else:
 # nrows = 1M,
 # dfvalid scores = 0.864423564648 0.713968261636 0.582836163378
 # dtest score = 25,91256%.
+#
+# resultat18.csv :
+# nrows = 3M,
+# dfvalid scores = 0.897973478901 0.790802154537 0.688703171421
+# dtest score = 38,38748% 
 
