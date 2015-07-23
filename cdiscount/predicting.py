@@ -136,7 +136,7 @@ predict_cat1 = [itocat1[i] for i in np.argmax(stage1_log_proba,axis=1)]
 predict_cat2 = [itocat2[i] for i in np.argmax(stage2_log_proba,axis=1)]
 predict_cat3 = [itocat3[i] for i in np.argmax(stage3_log_proba,axis=1)]
 
-def submit():
+def submit(df):
     submit_file = ddir+'resultat.csv'
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = predict_cat3
@@ -152,5 +152,18 @@ else:
     submit(df)
 
 #############################################################################
-# nrows = 100K, dfvalid scores = 0.681795125722 0.443322625057 0.296973503055
+# resultat16.csv :
+# nrows = 100K, 
+# dfvalid scores = 0.681795125722 0.443322625057 0.296973503055
+# dftest score = 6.85921%.
+#
+# resultat17.csv :
+# nrows = 1M,
+# dfvalid scores = 0.864423564648 0.713968261636 0.582836163378
+# dtest score = 25,91256%.
+#
+# resultat18.csv :
+# nrows = 3M,
+# dfvalid scores = 0.897973478901 0.790802154537 0.688703171421
+# dtest score = 38,38748% 
 
