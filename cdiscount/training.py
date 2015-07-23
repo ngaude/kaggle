@@ -7,13 +7,18 @@ Created on Mon Jul 06 23:14:18 2015
 """
 
 from utils import wdir,ddir,header,normalize_file
-from utils import MarisaTfidfVectorizer,vectorizer,iterText
+from utils import MarisaTfidfVectorizer,iterText
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import SGDClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.externals import joblib
 from os.path import basename
+
+"""
+import os
+os.chdir('C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/')
+"""
 
 ########################
 # Normalisation
@@ -22,7 +27,7 @@ from os.path import basename
 """
 normalize_file(ddir + 'test.csv',header(test=True))
 normalize_file(ddir + 'validation.csv',header())
-normalize_file(ddir + 'training_shuffled.csv',header(),nrows=2000000)
+normalize_file(ddir + 'training_shuffled.csv',header())
 """
 
 def score(df,vec,cla,target):
@@ -47,15 +52,16 @@ def vectorizer(df):
     vec.fit(iterText(df))
     return vec
 
-def classifier(df,vec,target):
-    X = vec.transform(iterText(df))
-    Y = list(df[target])
 #    cla = SGDClassifier(
 #        loss = 'hinge',
 #        n_jobs = 3,
 #        penalty='elasticnet',
 #        n_iter=5,
 #        random_state=42)
+
+def classifier(df,vec,target):
+    X = vec.transform(iterText(df))
+    Y = list(df[target])
     cla = LogisticRegression() 
     cla.fit(X,Y)
     print 'classifier training score',cla.score(X,Y)
@@ -70,7 +76,7 @@ def classifier(df,vec,target):
 
 # load data
 
-nrows = 100000
+nrows = 3000000
 dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header(),nrows=nrows).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 
@@ -87,6 +93,7 @@ print '**********************************'
 print 'classifier',basename(fname),'valid score',sc
 print '**********************************'
 joblib.dump((labels,vec,cla),fname)
+del vec,cla
 
 # stage 2 training
 
@@ -103,15 +110,16 @@ for i,cat in enumerate(cat1):
         continue
     vec = vectorizer(df)
     cla = classifier(df,vec,"Categorie2")
-    dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index()
+    dfv = dfvalid[dfvalid.Categorie2 == cat].reset_index()
     if len(dfv)==0:
         print 'classifier',basename(fname),'cannot be validated...'
-        continue
-    sc = score(dfv,vec,cla,"Categorie2")
-    print '*'*50
-    print 'classifier',basename(fname),'valid score',sc
-    print '*'*50
+    else:
+        sc = score(dfv,vec,cla,"Categorie2")
+        print '*'*50
+        print 'classifier',basename(fname),'valid score',sc
+        print '*'*50
     joblib.dump((labels,vec,cla),fname)
+    del vec,cla
 
 # stage 3 training
 
@@ -128,13 +136,14 @@ for i,cat in enumerate(cat2):
         continue
     vec = vectorizer(df)
     cla = classifier(df,vec,"Categorie3")
-    dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index()
+    dfv = dfvalid[dfvalid.Categorie3 == cat].reset_index()
     if len(dfv)==0:
         print 'classifier',basename(fname),'cannot be validated...'
-        continue
-    sc = score(dfv,vec,cla,"Categorie3")
-    print '*'*50
-    print 'classifier',basename(fname),'valid score',sc
-    print '*'*50
+    else:
+        sc = score(dfv,vec,cla,"Categorie3")
+        print '*'*50
+        print 'classifier',basename(fname),'valid score',sc
+        print '*'*50
     joblib.dump((labels,vec,cla),fname)
+    del vec,cla
 

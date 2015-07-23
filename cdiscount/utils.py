@@ -1,7 +1,7 @@
 import marisa_trie
 from sklearn.externals import six
 from sklearn.feature_extraction.text import TfidfVectorizer
-import Stemmer
+#import Stemmer
 import nltk
 from bs4 import BeautifulSoup
 import re
@@ -9,11 +9,14 @@ import unicodedata
 import time
 import pandas as pd
 import numpy as np
-#ddir = 'E:/workspace/data/cdiscount/'
-#wdir = 'C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/'
+
+ddir = 'E:/workspace/data/cdiscount/'
+wdir = 'C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/'
+
+"""
 ddir = '/home/ngaude/workspace/data/cdiscount/'
 wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
-
+"""
 
 rayon = pd.read_csv(ddir+'rayon.csv',sep=';')
 
@@ -41,7 +44,9 @@ with open(wdir+'stop-words_french_2_fr.txt', "r") as f:
 stopwords += nltk.corpus.stopwords.words('french')
 stopwords += ['voir', 'presentation']
 stopwords = set(stopwords)
-stemmer = Stemmer.Stemmer('french')
+
+#stemmer = Stemmer.Stemmer('french')
+stemmer=nltk.stem.SnowballStemmer('french')
 
 def header(test=False):
     if test==True:
@@ -66,7 +71,8 @@ def normalize_txt(txt):
     # remove french stop words
     tokens = [w for w in txt.split() if (len(w)>2) and (w not in stopwords)]
     # french stemming
-    tokens = stemmer.stemWords(tokens)
+    tokens = [ stemmer.stem(token) for token in tokens]
+#    tokens = stemmer.stemWords(tokens)
     return ' '.join(tokens)
 
 def normalize_price(price):
