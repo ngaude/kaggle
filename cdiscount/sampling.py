@@ -11,6 +11,7 @@ os.chdir('C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/')
 
 from utils import wdir,ddir,header,normalize_file
 from utils import MarisaTfidfVectorizer,iterText
+from sklearn.feature_extraction.text import TfidfVectorizer
 import random
 import numpy as np
 import pandas as pd
@@ -46,13 +47,13 @@ def vectorizer(df):
     # 1M max_features should fit in memory, 
     # OvA will be at max 184 classes, 
     # so we can fit coef_ =  1M*184*8B ~ 1GB in memory easily
-    vec = MarisaTfidfVectorizer(
+    vec = TfidfVectorizer(
         min_df = 1,
         stop_words = None,
-        max_features=1000000,
+        max_features=123456,
         smooth_idf=True,
         norm='l2',
-        sublinear_tf=True,
+        sublinear_tf=False,
         use_idf=True,
         ngram_range=(1,3))
     vec.fit(iterText(df))
@@ -89,7 +90,7 @@ def submit(df,Y):
     
 dfsample = pd.read_csv(ddir+'training_sampled.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
+dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header()).fillna('')
 
 fname = ddir + 'joblib/logit'
 df = dfsample

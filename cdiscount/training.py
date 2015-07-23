@@ -6,10 +6,11 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-from utils import wdir,ddir,header,normalize_file
-from utils import MarisaTfidfVectorizer,iterText
+from utils import wdir,ddir,header,normalize_file,iterText
+from utils import MarisaTfidfVectorizer
 import numpy as np
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.externals import joblib
