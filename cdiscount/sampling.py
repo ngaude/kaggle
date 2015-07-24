@@ -9,8 +9,7 @@ import os
 os.chdir('C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/')
 
 
-from utils import wdir,ddir,header,normalize_file
-from utils import MarisaTfidfVectorizer,iterText
+from utils import wdir,ddir,header,normalize_file,iterText
 from sklearn.feature_extraction.text import TfidfVectorizer
 import random
 import numpy as np
