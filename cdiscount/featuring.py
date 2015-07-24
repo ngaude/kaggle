@@ -185,6 +185,7 @@ del Xtrain
 joblib.dump((sample_X,sample_y,sample_w),ddir+'joblib/sampleXYW')
 
 """
+
 columns = ['Identifiant_Produit','Categorie1','Categorie2','Categorie3','Description','Libelle','Marque','Produit_Cdiscount','prix'] 
 train_df = pd.read_csv(ddir+'training_shuffled_tail.csv',sep=';',names = columns)
 (Dneighbor,Ineighbor) = joblib.load(ddir+'joblib/DIvalidation')
@@ -198,6 +199,7 @@ classifier.score(valid_X,valid_Y)
 # k=5 : 59%
 # k=2 : 58.5%
 # k=1 : 57.5%
+
 """
 
 ##########################################################
