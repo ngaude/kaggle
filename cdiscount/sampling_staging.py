@@ -214,7 +214,6 @@ else:
     submit(df,predict_cat3)
 
 
-
-
+# resultat22.csv scored 58,43218% 
 
 
