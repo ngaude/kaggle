@@ -9,6 +9,7 @@ import unicodedata
 import time
 import pandas as pd
 import numpy as np
+import random
 
 """
 ddir = 'E:/workspace/data/cdiscount/'
@@ -147,3 +148,29 @@ class MarisaTfidfVectorizer(TfidfVectorizer):
             self.vocabulary_ = marisa_trie.Trie(six.iterkeys(self.vocabulary_))
             self.fixed_vocabulary_ = True
             del self.stop_words_
+
+
+def training_sample(dftrain,label,mincount = 200,maxsampling = 10):
+    cl = dftrain[label]
+    cc = cl.groupby(cl)
+    s = (cc.count() > mincount/maxsampling)
+    labelmaj = s[s].index
+    print len(labelmaj),len(labelmaj)*mincount
+    dfs = []
+    for i,cat in enumerate(labelmaj):
+        if i%10==0:
+            print i,'/',len(labelmaj),':'
+        df = dftrain[dftrain[label] == cat]
+        if len(df)>=mincount:
+            # undersample mincount samples
+            rows = random.sample(df.index, mincount)
+            dfs.append(df.ix[rows])
+        else:
+            # sample all samples + oversample the remaining
+            dfs.append(df)
+            df = df.iloc[np.random.randint(0, len(df), size=mincount-len(df))]
+            dfs.append(df)
+    dfsample = pd.concat(dfs)
+    dfsample = dfsample.reset_index()
+    dfsample.reindex(np.random.permutation(dfsample.index))
+    return dfsample

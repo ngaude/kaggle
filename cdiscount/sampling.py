@@ -55,9 +55,6 @@ def score(df,vec,cla,target):
     return sc
 
 def vectorizer(df):
-    # 1M max_features should fit in memory, 
-    # OvA will be at max 184 classes, 
-    # so we can fit coef_ =  1M*184*8B ~ 1GB in memory easily
     vec = MarisaTfidfVectorizer(
         min_df = 0.00009,
         stop_words = None,
@@ -102,7 +99,6 @@ if not os.path.isfile(ddir+'training_sampled.csv'):
 dfsample = pd.read_csv(ddir+'training_sampled.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
-
 
 df = dfsample
 
