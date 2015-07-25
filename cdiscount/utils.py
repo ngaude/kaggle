@@ -10,13 +10,12 @@ import time
 import pandas as pd
 import numpy as np
 
+"""
 ddir = 'E:/workspace/data/cdiscount/'
 wdir = 'C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/'
-
 """
 ddir = '/home/ngaude/workspace/data/cdiscount/'
 wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
-"""
 
 rayon = pd.read_csv(ddir+'rayon.csv',sep=';')
 
