@@ -108,70 +108,9 @@ print '**********************************'
 print 'classifier training score',sct
 print 'classifier validation score',scv
 print '**********************************'
-
 joblib.dump((labels,vec,cla),fname)
+
 del vec,cla
-
-#######################################################
-# stage 1 optimization
-#######################################################
-
-# FIXME
-# FIXME
-# FIXME
-# >>>>>
-
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.svm import LinearSVC
-from sklearn.svm import SVC
-import time
-
-df = dftrain
-dfv = dfvalid
-
-fname = ddir + 'joblib/stage1'
-(labels,vec,cla) = joblib.load(fname)
-#X = vec.transform(iterText(df))
-#joblib.dump(X,ddir+'joblib/X')
-X = joblib.load(ddir+'joblib/X')
-Y = df['Categorie1'].values
-
-import random
-r = random.sample(range(len(df)),len(df))
-Xs = X[r]
-Ys = Y[r]
-
-
-dt = -time.time()
-
-cla = LinearSVC(loss='hinge',penalty='l1') # 0.8237 0.8220 (198s)
-# cla = LinearSVC(multi_class = 'crammer_singer') #  0.9472 0.8226 (2434s)
-# cla = LogisticRegression() # 0.9084 0.8112 (600s)
-# cla = SGDClassifier(loss='modified_hubber', penalty='l2',n_jobs=2, n_iter = 5) # 0.8677 07859 (50s)
-# cla = SGDClassifier(loss='log', penalty='l2',n_jobs=2, n_iter = 5, shuffle = True) # 0.6881 0.5827 (50s)
-# cla = SVC(kernel='linear')
-#cla.fit(X,Y)
-cla.fit(Xs,Ys)
-dt += time.time()
-print 'time elapsed:',dt
-
-#cla.predict_log_proba(X[0])
-
-sct = score(df[:30000],vec,cla,'Categorie1')
-scv = score(dfv,vec,cla,'Categorie1')
-print '**********************************'
-print 'classifier training score',sct
-print 'classifier validation score',scv
-print '**********************************'
-
-Xvalid = vec.transform(iterText(dfvalid))
-predict_cat1 = cla.predict(Xvalid)
-
-# <<<<<
-# FIXME
-# FIXME
-# FIXME
-
 
 # stage 3 training : use Categorie3 sample training set
 
@@ -237,8 +176,8 @@ def log_proba(df,vec,cla):
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
-#df = dftest
-df = dfvalid
+df = dftest
+#df = dfvalid
 
 n = len(df)
 
@@ -291,36 +230,6 @@ joblib.dump((stage1_log_proba,stage3_log_proba),fname)
 ##################
 # (stage1_log_proba,stage3_log_proba) = joblib.load(fname)
 ##################
-
-# FIXME
-# FIXME
-# FIXME
-# >>>>>
-
-# greedy approach:
-(stage1_log_proba,stage3_log_proba) = joblib.load(fname)
-
-#predict_cat1 = [itocat1[i] for i in np.argmax(stage1_log_proba,axis=1)]
-
-for i,cat1 in enumerate(predict_cat1):
-    if i%1000==0:
-        print 1.*i/len(predict_cat1)
-    for j in [k for k,cat3 in enumerate(itocat3) if cat3tocat1[cat3] != cat1]:
-        stage3_log_proba[i,j] = -666
-
-predict_cat3 = [itocat3[i] for i in np.argmax(stage3_log_proba,axis=1)]
-
-score_cat1 = sum(dfvalid.Categorie1 == predict_cat1)*1.0/n
-score_cat3 = sum(dfvalid.Categorie3 == predict_cat3)*1.0/n
-print 'dfvalid scores =',score_cat1,score_cat3
-
-# <<<<<
-# FIXME
-# FIXME
-# FIXME
-
-
-
 
 ##################
 # bayes rulez ....
