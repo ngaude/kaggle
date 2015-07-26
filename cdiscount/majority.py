@@ -5,7 +5,7 @@ ddir = '/home/ngaude/workspace/data/cdiscount/'
 wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
 
 
-dfs = [pd.read_csv(ddir+'resultat'+str(i)+'.csv',sep=';') for i in range(1,18)]
+dfs = [pd.read_csv(ddir+'resultat'+str(i)+'.csv',sep=';') for i in range(20,25)]
 df = pd.concat(dfs).reset_index()
 g = df.groupby('Id_Produit')
 
