@@ -20,8 +20,11 @@ from utils import itocat1,itocat2,itocat3
 from utils import cat1toi,cat2toi,cat3toi
 from utils import cat3tocat2,cat3tocat1,cat2tocat1
 from utils import cat1count,cat2count,cat3count
-from joblib import Parallel, delayed
+from utils import training_sample
 from os.path import isfile
+
+from joblib import Parallel, delayed
+from multiprocessing import Manager
 
 """
 import os
@@ -35,7 +38,7 @@ def score(df,vec,cla,target):
     return sc
 
 def vectorizer(df):
-    vec = MarisaTfidfVectorizer(
+    vec = TfidfVectorizer(
         min_df = 0.00009,
         stop_words = None,
         max_features=123456,
@@ -53,18 +56,45 @@ def classifier(df,vec,target):
     cla = LogisticRegression() 
     cla.fit(X,Y)
     return cla
-########################
-# load data
+
+#######################
+#######################
+#######################
+#######################
+# create balanced data
+# balanced : Categorie1
 # balanced : Categorie3
+#######################
+#######################
+#######################
+#######################
 
-dftrain = pd.read_csv(ddir+'training_sampled.csv',sep=';',names = header()).fillna('').reset_index()
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 
+def create_sample(dftrain,label,mincount,maxsampling):
+    fname = ddir+'training_sampled_'+label+'.csv'
+    dfsample = training_sample(dftrain,label,mincount,maxsampling)
+    dfsample.to_csv(fname,sep=';',index=False,header=False)
+    return
+
+#dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('').reset_index()
+#create_sample(dftrain,'Categorie1',25000,500)   #~1M rows
+#create_sample(dftrain,'Categorie3',1000,50)     #~5M rows
+
+#######################
+#######################
+#######################
 #######################
 # training
 # staged : Categorie1 =>  Categorie3
+#######################
+#######################
+#######################
+#######################
 
-# stage 1 training
+dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
+
+# stage 1 training : use Categorie1 sample training set
+dftrain = pd.read_csv(ddir+'training_sampled_Categorie3.csv',sep=';',names = header()).fillna('').reset_index()
 
 fname = ddir + 'joblib/stage1'
 df = dftrain
@@ -72,7 +102,6 @@ vec = vectorizer(df)
 cla = classifier(df,vec,"Categorie1")
 labels = np.unique(df.Categorie1)
 dfv = dfvalid
-
 sct = score(df[:30000],vec,cla,'Categorie1')
 scv = score(dfv,vec,cla,'Categorie1')
 print '**********************************'
@@ -80,11 +109,13 @@ print 'classifier training score',sct
 print 'classifier validation score',scv
 print '**********************************'
 joblib.dump((labels,vec,cla),fname)
+
 del vec,cla
 
-# stage 3 training
+# stage 3 training : use Categorie3 sample training set
 
-def training_stage3(dftrain,dfvalid,cat):
+# Parallel training :
+def training_stage3(ctx,cat):
     fname = ddir + 'joblib/stage3_'+str(cat)
     print '-'*50
     print 'training',basename(fname),':',cat
@@ -93,14 +124,16 @@ def training_stage3(dftrain,dfvalid,cat):
     if len(labels)==1:
         print fname,'predict 100% ',labels[0]
         joblib.dump((labels,None,None),fname)
-        continue
+        scv = -1
+        sct = -1
+        return (sct,scv)
     print len(df)
     vec = vectorizer(df)
     cla = classifier(df,vec,"Categorie3")
     dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index()
     sct = score(df[:30000],vec,cla,'Categorie3')
     if len(dfv)==0:
-        scv = '?'
+        scv = -1
     else:
         scv = score(dfv,vec,cla,'Categorie3')
     print '**********************************'
@@ -109,18 +142,28 @@ def training_stage3(dftrain,dfvalid,cat):
     print '**********************************'
     joblib.dump((labels,vec,cla),fname)
     del vec,cla
-    return
- 
+    return (sct,scv)
+
+dftrain = pd.read_csv(ddir+'training_sampled_Categorie3.csv',sep=';',names = header()).fillna('').reset_index()
 cat1 = np.unique(dftrain.Categorie1)
 
+mgr = Manager()
+ctx = mgr.Namespace()
+ctx.dftrain = dftrain
+ctx.dfvalid = dfvalid
 
-# Parallel(n_jobs=3)(training_stage3(dftrain,dfvalid,cat) for cat in cat1)
-
-for i,cat in enumerate(cat1):
-    training_stage3(dftrain,dfvalid,cat)
+scs = Parallel(n_jobs=3)(delayed(training_stage3)(ctx,cat) for cat in cat1)
 
 #######################
+#######################
+#######################
+#######################
 # predicting
+#######################
+#######################
+#######################
+#######################
+
 # staged : Categorie1 =>  Categorie3
 # using sum log prob 1&3 to estimate total proba
 
@@ -128,32 +171,37 @@ for i,cat in enumerate(cat1):
 def log_proba(df,vec,cla):
     X = vec.transform(iterText(df))
     lp = cla.predict_log_proba(X)
-    return lp
+    return (cla.classes_,lp)
 
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
-# df = dftest
 df = dftest
+#df = dfvalid
 
 n = len(df)
 
+
+#######################
+# stage 1 log proba filling
+#######################
 stage1_log_proba = np.full(shape=(n,cat1count),fill_value = -666.,dtype = float)
 
-# stage 1 log proba filling
 fname = ddir + 'joblib/stage1'
 (labels,vec,cla) = joblib.load(fname)
-lp = log_proba(df,vec,cla)
-for i,k in enumerate(cla.classes_):
+(classes,lp) = log_proba(df,vec,cla)
+for i,k in enumerate(classes):
     j = cat1toi[k]
     stage1_log_proba[:,j] = lp[:,i]
 
 del labels,vec,cla
 
+
+#######################
 # stage 3 log proba filling
+#######################
 stage3_log_proba = np.full(shape=(n,cat3count),fill_value = -666.,dtype = float)
 
-# stage 3 log proba filling
 for ii,cat in enumerate(itocat1):
     fname = ddir + 'joblib/stage3_'+str(cat)
     print '-'*50
@@ -166,8 +214,8 @@ for ii,cat in enumerate(itocat1):
         j = cat3toi[k]
         stage3_log_proba[:,j] = 0
         continue
-    lp = log_proba(df,vec,cla)
-    for i,k in enumerate(cla.classes_):
+    (classes,lp) = log_proba(df,vec,cla)
+    for i,k in enumerate(classes):
         j = cat3toi[k]
         stage3_log_proba[:,j] = lp[:,i]
     del labels,vec,cla
@@ -215,5 +263,7 @@ else:
 
 
 # resultat22.csv scored 58,43218% 
+# resultat23.csv scored 52.95399% (2 sampling : for Categorie1 (49*25000) & for Categorie3 (4546*1000) )
+# resultat24.csv scored 61,54948% ( 1000 samples (4546 classes ) with staged 1&3 proba logit)
 
 
