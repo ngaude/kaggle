@@ -21,10 +21,11 @@ from utils import cat3tocat2,cat3tocat1,cat2tocat1
 from utils import cat1count,cat2count,cat3count
 from utils import training_sample
 from os.path import isfile
-
 from joblib import Parallel, delayed
 from multiprocessing import Manager
-
+from sklearn.svm import LinearSVC
+import time
+import joblib
 
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
@@ -35,10 +36,9 @@ Xv = vec.transform(iterText(dfvalid))
 Yv = dfvalid['Categorie1'].values
 Zv = dfvalid['Categorie3'].values
 
-df = dftrain
-X = joblib.load(ddir+'joblib/X')
-Y = dftrain['Categorie1'].values
-Z = dftrain['Categorie3'].values
+Xt = joblib.load(ddir+'joblib/X')
+Yt = dftrain['Categorie1'].values
+Zt = dftrain['Categorie3'].values
 
 #import random
 #r = random.sample(range(len(df)),len(df))
@@ -46,31 +46,51 @@ Z = dftrain['Categorie3'].values
 #Y = Y[r]
 #Z = Z[r]
 
-import time
 dt = -time.time()
 
-from sklearn.svm import LinearSVC
-cla = LinearSVC(loss='hinge',penalty='l2') # 0.8237 0.8220 (198s)
-# cla = LinearSVC(multi_class = 'crammer_singer') #  0.9472 0.8226 (2434s)
-# cla = LogisticRegression() # 0.9084 0.8112 (600s)
-# cla = SGDClassifier(loss='modified_hubber', penalty='l2',n_jobs=2, n_iter = 5) # 0.8677 07859 (50s)
-# cla = SGDClassifier(loss='log', penalty='l2',n_jobs=2, n_iter = 5, shuffle = True) # 0.6881 0.5827 (50s)
-# cla = SVC(kernel='linear')
-#cla.fit(X,Y)
-cla.fit(X,Y)
+# training cl1 and dcl2
+cla = LinearSVC(loss='hinge',penalty='l2')
+X = Xt
+Y = Yt
+cla.fit(Xt,Yt)
 dt += time.time()
-
 cl1 = cla
 
 dcl2 = {}
-for cat1 in np.unique(Y):
-    print cat1
-    f = (Y==cat1)
-    Xt = X[f]
-    Yt = Y[f]
+for cat1 in np.unique(Yt):
+    f = (Yt==cat1)
+    X = Xt[f]
+    Z = Zt[f]
+    if len(np.unique(Z))==1:
+        dcl2[cat1] = Z[0]
+        continue
     cla = LinearSVC(loss='hinge',penalty='l2')
-    cla.fit(X,Y)
+    cla.fit(X,Z)
     dcl2[cat1]=cla
-    
+    # compute classifier score
+    f = (Yv==cat1)
+    X = Xv[f]
+    Z = Zv[f]
+    print 'classifier',cat1,'=',cla.score(X,Z)
 
+# predicting based on stack SVC models
 
+Yp = cl1.predict(Xv)
+print 'score cat1 = ',sum(Yp == Yv)*1.0/len(Yv)
+Zp = np.zeros(len(Yp))
+for cat1 in np.unique(Yp):
+    cla = dcl2[cat1]
+    f = (Yp==cat1)
+    X = Xv[f]
+    if type(cla) is np.int64:
+        Zp[f] = cla
+    else:
+        Zp[f] = cla.predict(X)
+
+scv = sum(Zp == Zv)*1.0/len(Zp)
+print 'score cat3 = ',scv
+
+from scipy.sparse import vstack
+
+# score cat1 =  0.818410183329
+# score cat3 =  0.601531363977

@@ -135,16 +135,17 @@ fname = ddir + 'joblib/stage1'
 #joblib.dump(X,ddir+'joblib/X')
 X = joblib.load(ddir+'joblib/X')
 Y = df['Categorie1'].values
+Z = df['Categorie3'].values
 
 import random
 r = random.sample(range(len(df)),len(df))
 Xs = X[r]
 Ys = Y[r]
-
+Zs = Z[r]
 
 dt = -time.time()
 
-cla = LinearSVC(loss='hinge',penalty='l1') # 0.8237 0.8220 (198s)
+cla = LinearSVC(loss='hinge',penalty='l2',max_iter=1500) # 0.8237 0.8220 (198s)
 # cla = LinearSVC(multi_class = 'crammer_singer') #  0.9472 0.8226 (2434s)
 # cla = LogisticRegression() # 0.9084 0.8112 (600s)
 # cla = SGDClassifier(loss='modified_hubber', penalty='l2',n_jobs=2, n_iter = 5) # 0.8677 07859 (50s)
