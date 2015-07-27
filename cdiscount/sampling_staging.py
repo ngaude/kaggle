@@ -37,6 +37,19 @@ def score(df,vec,cla,target):
     sc = cla.score(X,Y)
     return sc
 
+def vectorizer2(text):
+    vec = TfidfVectorizer(
+        min_df = 0.00009,
+        stop_words = None,
+        max_features=123456,
+        smooth_idf=True,
+        norm='l2',
+        sublinear_tf=False,
+        use_idf=True,
+        ngram_range=(1,3))
+    vec.fit(text)
+    return vec
+
 def vectorizer(df):
     vec = TfidfVectorizer(
         min_df = 0.00009,
@@ -69,16 +82,34 @@ def classifier(df,vec,target):
 #######################
 #######################
 
+import time
+
+a =-time.time()
+vec = vectorizer(dfsample)
+a +=time.time()
+# vectorizer = 16,8s
+
+
+a =-time.time()
+txt = (dfsample.Marque+' ')*3+(dfsample.Libelle+' ')*2+dfsample.Description
+vectorizer2(txt)
+a +=time.time()
+# vectorize2 = 7.19s
+
 
 def create_sample(dftrain,label,mincount,maxsampling):
     fname = ddir+'training_sampled_'+label+'.csv'
     dfsample = training_sample(dftrain,label,mincount,maxsampling)
     dfsample.to_csv(fname,sep=';',index=False,header=False)
-    return
+    return dfsample
 
 #dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('').reset_index()
 #create_sample(dftrain,'Categorie1',25000,500)   #~1M rows
 #create_sample(dftrain,'Categorie3',1000,50)     #~5M rows
+#create_sample(dftrain,'Categorie3',200,10)     #~1M rows
+#create_sample(dftrain,'Categorie3',20000,1)     #~1M rows
+
+
 
 #######################
 #######################
@@ -91,10 +122,10 @@ def create_sample(dftrain,label,mincount,maxsampling):
 #######################
 #######################
 
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
+dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index(drop=True)
 
 # stage 1 training : use Categorie1 sample training set
-dftrain = pd.read_csv(ddir+'training_sampled_Categorie3.csv',sep=';',names = header()).fillna('').reset_index()
+dftrain = pd.read_csv(ddir+'training_sampled_Categorie3.csv',sep=';',names = header()).fillna('').reset_index(drop=True)
 
 fname = ddir + 'joblib/stage1'
 df = dftrain

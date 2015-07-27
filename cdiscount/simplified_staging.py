@@ -27,46 +27,84 @@ from sklearn.svm import LinearSVC
 import time
 import joblib
 
+def create_sample(df,label,mincount,maxsampling):
+    fname = ddir+'training_sampled_'+label+'.csv'
+    dfsample = training_sample(df,label,mincount,maxsampling)
+    dfsample.to_csv(fname,sep=';',index=False,header=False)
+    return dfsample
+
+def add_txt(df):
+    assert 'Marque' in df.columns
+    assert 'Libelle' in df.columns
+    assert 'Description' in df.columns
+    df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+    return df
+
+def vectorizer(txt):
+    vec = TfidfVectorizer(
+        min_df = 0.00009,
+        stop_words = None,
+        max_features=123456,
+        smooth_idf=True,
+        norm='l2',
+        sublinear_tf=False,
+        use_idf=True,
+        ngram_range=(1,3))
+    X = vec.fit_transform(txt)
+    return (vec,X)
+
+#####################
+# create sample set 
+# from training set
+#####################
+
+#df = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('').reset_index(drop=True)
+#create_sample(df,'Categorie3',1000,50)
+#del df
+
+#####################
+# vectorize sample set
+#####################
+
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 dftrain = pd.read_csv(ddir+'training_sampled_Categorie3.csv',sep=';',names = header()).fillna('')
 
-(_,vec,_) = joblib.load(ddir + 'joblib/stage1')
-Xv = vec.transform(iterText(dfvalid))
+add_txt(dftrain)
+add_txt(dfvalid)
+add_txt(dftest)
+
+(vec,X) = vectorizer(dftrain.txt)
+Y = dftrain['Categorie1'].values
+Z = dftrain['Categorie3'].values
+
+Xv = vec.transform(dfvalid.txt)
 Yv = dfvalid['Categorie1'].values
 Zv = dfvalid['Categorie3'].values
 
-Xt = joblib.load(ddir+'joblib/X')
-Yt = dftrain['Categorie1'].values
-Zt = dftrain['Categorie3'].values
-
-#import random
-#r = random.sample(range(len(df)),len(df))
-#X = X[r]
-#Y = Y[r]
-#Z = Z[r]
+Xt = vec.transform(dftest.txt)
 
 dt = -time.time()
-
-# training cl1 and dcl2
-cla = LinearSVC(loss='hinge',penalty='l2')
-X = Xt
-Y = Yt
-cla.fit(Xt,Yt)
+# training classifier for categorie1
+cla1 = LogisticRegression()
+cla1.fit(X,Y)
 dt += time.time()
-cl1 = cla
+print dt
 
-dcl2 = {}
-for cat1 in np.unique(Yt):
-    f = (Yt==cat1)
-    X = Xt[f]
-    Z = Zt[f]
-    if len(np.unique(Z))==1:
-        dcl2[cat1] = Z[0]
+joblib.dump((vec,cla1),ddir+'joblib/stage1')
+
+cla3 = {}
+for cat1 in np.unique(Y):
+    f = (Y==cat1)
+    Xs = X[f]
+    Zs = Z[f]
+    if len(np.unique(Zs))==1:
+        cla2[cat1] = (np.unique(Zs),None)
         continue
-    cla = LinearSVC(loss='hinge',penalty='l2')
-    cla.fit(X,Z)
-    dcl2[cat1]=cla
+    cla = LogisticRegression()
+    cla.fit(Xs,Zs)
+    cla3[cat1]=cla
+    joblib.dump((vec,cla),ddir+'joblib/stage3_')
     # compute classifier score
     f = (Yv==cat1)
     X = Xv[f]

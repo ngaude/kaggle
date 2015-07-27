@@ -176,6 +176,6 @@ def training_sample(dftrain,label,mincount = 200,maxsampling = 10):
             df = df.iloc[np.random.randint(0, len(df), size=mincount-len(df))]
             dfs.append(df)
     dfsample = pd.concat(dfs)
-    dfsample = dfsample.reset_index()
-    dfsample.reindex(np.random.permutation(dfsample.index))
+    dfsample = dfsample.reset_index(drop=True)
+    dfsample = dfsample.reindex(np.random.permutation(dfsample.index),copy=False)
     return dfsample
