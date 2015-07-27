@@ -140,4 +140,3 @@ dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fil
 
 for ensemble in range(10):
     training(dfvalid,ensemble)
-     
