@@ -38,9 +38,8 @@ def add_txt(df):
     assert 'Libelle' in df.columns
     assert 'Description' in df.columns
     df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
-    return df
 
-def vectorizer(txt):
+def vectorizer1(txt):
     vec = TfidfVectorizer(
         min_df = 0.00009,
         stop_words = None,
@@ -53,13 +52,53 @@ def vectorizer(txt):
     X = vec.fit_transform(txt)
     return (vec,X)
 
+def vectorizer2(txt):
+    vec = TfidfVectorizer(
+        min_df = 2,
+        stop_words = None,
+        max_features=123456,
+        smooth_idf=True,
+        norm='l2',
+        sublinear_tf=False,
+        use_idf=True,
+        ngram_range=(1,2))
+    X = vec.fit_transform(txt)
+    return (vec,X)
+
+def vectorizer3(txt):
+    vec = TfidfVectorizer(
+        min_df = 2,
+        stop_words = None,
+        max_features=123456,
+        smooth_idf=True,
+        norm='l2',
+        sublinear_tf=True,
+        use_idf=True,
+        ngram_range=(1,2))
+    X = vec.fit_transform(txt)
+    return (vec,X)
+
+def vectorizer(txt):
+    vec = TfidfVectorizer(
+        min_df = 2,
+        stop_words = None,
+        max_features=123456,
+        smooth_idf=True,
+        norm='l2',
+        sublinear_tf=True,
+        use_idf=True,
+        ngram_range=(1,2))
+    X = vec.fit_transform(txt)
+    return (vec,X)
+
 #####################
 # create sample set 
 # from training set
 #####################
 
 #df = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('').reset_index(drop=True)
-#create_sample(df,'Categorie3',1000,50)
+#create_sample(df,'Categorie3',1000,50) # "training_sampled_Categorie3_1000.csv"
+#create_sample(df,'Categorie3',200,10) # "training_sampled_Categorie3_200.csv"
 #del df
 
 #####################
@@ -68,15 +107,19 @@ def vectorizer(txt):
 
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
-dftrain = pd.read_csv(ddir+'training_sampled_Categorie3.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
 
 add_txt(dftrain)
 add_txt(dfvalid)
 add_txt(dftest)
 
-(vec,X) = vectorizer(dftrain.txt)
-Y = dftrain['Categorie1'].values
-Z = dftrain['Categorie3'].values
+if True:
+    (vec,X) = vectorizer(dftrain.txt)
+    Y = dftrain['Categorie1'].values
+    Z = dftrain['Categorie3'].values
+    joblib.dump((vec,X,Y,Z),ddir+'joblib/vecXYZ')
+else:
+    (vec,X,Y,Z) = joblib.load(ddir+'joblib/vecXYZ')
 
 Xv = vec.transform(dfvalid.txt)
 Yv = dfvalid['Categorie1'].values
@@ -84,51 +127,25 @@ Zv = dfvalid['Categorie3'].values
 
 Xt = vec.transform(dftest.txt)
 
-dt = -time.time()
 # training classifier for categorie1
-cla1 = LogisticRegression()
+dt = -time.time()
+cla1 = LogisticRegression(C=5)
 cla1.fit(X,Y)
 dt += time.time()
-print dt
-
+print 'training time',dt
+sct = cla1.score(X[:30000],Y[:30000])
+scv = cla1.score(Xv,Yv)
+print '**********************************'
+print 'classifier Categorie1 training score',sct
+print 'classifier Categorie3 validation score',scv
+print '**********************************'
 joblib.dump((vec,cla1),ddir+'joblib/stage1')
 
-cla3 = {}
-for cat1 in np.unique(Y):
-    f = (Y==cat1)
-    Xs = X[f]
-    Zs = Z[f]
-    if len(np.unique(Zs))==1:
-        cla2[cat1] = (np.unique(Zs),None)
-        continue
-    cla = LogisticRegression()
-    cla.fit(Xs,Zs)
-    cla3[cat1]=cla
-    joblib.dump((vec,cla),ddir+'joblib/stage3_')
-    # compute classifier score
-    f = (Yv==cat1)
-    X = Xv[f]
-    Z = Zv[f]
-    print 'classifier',cat1,'=',cla.score(X,Z)
-
-# predicting based on stack SVC models
-
-Yp = cl1.predict(Xv)
-print 'score cat1 = ',sum(Yp == Yv)*1.0/len(Yv)
-Zp = np.zeros(len(Yp))
-for cat1 in np.unique(Yp):
-    cla = dcl2[cat1]
-    f = (Yp==cat1)
-    X = Xv[f]
-    if type(cla) is np.int64:
-        Zp[f] = cla
-    else:
-        Zp[f] = cla.predict(X)
-
-scv = sum(Zp == Zv)*1.0/len(Zp)
-print 'score cat3 = ',scv
-
-from scipy.sparse import vstack
-
-# score cat1 =  0.818410183329
-# score cat3 =  0.601531363977
+# with create_sample(df,'Categorie3',200,10)
+# vectorizer1 : cat1 sct = 0.908466666667 scv = 0.811284751576 time = 241.424009085
+# vectorizer2 : cat1 sct = 0.9432 scv = 0.848916692834 time = 348.451503038
+# vectorizer3 : cat1 sct = 0.946233333333 scv = 0.859399531412 time = 338.183251143
+# vectorizer3 + logit C=2 : cat1 sct = 0.9584 scv = 0.869133595807 time = 451.135772943
+# vectorizer3 + logit C=5 : cat1 sct = 0.9722 scv = 0.874882249221 time = 480.174947977
+# 
+# weak regularization... survives validation ....
