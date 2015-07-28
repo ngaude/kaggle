@@ -283,5 +283,5 @@ else:
 # resultat22.csv scored 58,43218% 
 # resultat23.csv scored 52.95399% (2 sampling : for Categorie1 (49*25000) & for Categorie3 (4546*1000) )
 # resultat24.csv scored 61,54948% ( 1000 samples (4546 classes ) with staged 1&3 proba logit)
-# resultat29.csv scored xxxxxxxxx (1000samples/4546classes staged 1&3 optimized tfidf-vectorizer and L2-regularization)
+# resultat29.csv scored 65,78993% (1000samples/4546classes staged 1&3 optimized tfidf-vectorizer and L2-regularization)
 
