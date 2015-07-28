@@ -6,12 +6,10 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-from utils import wdir,ddir,header,normalize_file,iterText
-from utils import MarisaTfidfVectorizer
+from utils import wdir,ddir,header,normalize_file
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.externals import joblib
 from os.path import basename
@@ -24,7 +22,6 @@ from utils import training_sample
 from os.path import isfile
 
 from joblib import Parallel, delayed
-from multiprocessing import Manager
 import time
 
 def vectorizer(txt):
@@ -118,11 +115,9 @@ def training_stage3(dftrain,dfvalid,cat):
 # from training set
 #####################
 
-#dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
-#create_sample(dftrain,'Categorie1',25000,500)   #~1M rows
-#create_sample(dftrain,'Categorie3',200,10)     #~1M rows
-#create_sample(dftrain,'Categorie3',1000,50)     #~5M rows
-#del dftrain
+dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
+create_sample(dftrain,'Categorie3',200,10)     #~1M rows
+del dftrain
 
 #######################
 # training
@@ -164,7 +159,8 @@ scs = Parallel(n_jobs=2)(delayed(training_stage3)(dft,dfv,cat) for dft,dfv,cat i
 # P(Categorie3) = P(Categorie1) *  P(Categorie3|Categorie1)
 
 def log_proba(df,vec,cla):
-    X = vec.transform(iterText(df))
+    assert 'txt' in df.columns
+    X = vec.transform(df.txt)
     lp = cla.predict_log_proba(X)
     return (cla.classes_,lp)
 
@@ -280,8 +276,13 @@ if df is dfvalid:
 else:
     submit(df,predict_cat3)
 
-# resultat22.csv scored 58,43218% 
-# resultat23.csv scored 52.95399% (2 sampling : for Categorie1 (49*25000) & for Categorie3 (4546*1000) )
-# resultat24.csv scored 61,54948% ( 1000 samples (4546 classes ) with staged 1&3 proba logit)
-# resultat29.csv scored 65,78993% (1000samples/4546classes staged 1&3 optimized tfidf-vectorizer and L2-regularization)
-
+###########################
+# benchmark model scores  #
+###########################
+#
+# stage 1 training  score : 
+# stage 1 valid     score :
+#
+# stage 3 training  score :
+# stage 3 valid     score :
+# stage 3 test      score :

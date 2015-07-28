@@ -96,10 +96,10 @@ def vectorizer(txt):
 # from training set
 #####################
 
-#df = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('').reset_index(drop=True)
+df = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('').reset_index(drop=True)
 #create_sample(df,'Categorie3',1000,50) # "training_sampled_Categorie3_1000.csv"
-#create_sample(df,'Categorie3',200,10) # "training_sampled_Categorie3_200.csv"
-#del df
+create_sample(df,'Categorie3',200,10) # "training_sampled_Categorie3_200.csv"
+del df
 
 #####################
 # vectorize sample set

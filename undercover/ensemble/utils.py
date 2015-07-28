@@ -14,10 +14,10 @@ import os
 
 """
 ddir = 'E:/workspace/data/cdiscount/'
-wdir = 'C:/Users/ngaude/Documents/GitHub/kaggle/cdiscount/'
+wdir = 'C:/Users/ngaude/Documents/GitHub/kaggle/undercover/'
 """
 ddir = '/home/ngaude/workspace/data/cdiscount/'
-wdir = '/home/ngaude/workspace/github/kaggle/cdiscount/'
+wdir = '/home/ngaude/workspace/github/kaggle/undercover/'
 
 rayon = pd.read_csv(ddir+'rayon.csv',sep=';')
 
