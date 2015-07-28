@@ -55,23 +55,16 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = vectorizer(df.txt)
     Y = df['Categorie1'].values
-    dt = -time.time()
     cla = LogisticRegression(C=5)
     cla.fit(X,Y)
-    dt += time.time()
-    print 'training time',dt
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
     Yv = dfv['Categorie1'].values
     sct = cla.score(X[:10000],Y[:10000])
     scv = cla.score(Xv,Yv)
-    print '**********************************'
-    print 'classifier training score',sct
-    print 'classifier validation score',scv
-    print '**********************************'
     joblib.dump((labels,vec,cla),fname)
     del X,Y,Xv,Yv,vec,cla
-    return
+    return sct,scv
 
 def training_stage3(dftrain,dfvalid,cat):
     fname = ddir + 'joblib/stage3_'+str(cat)
@@ -103,8 +96,8 @@ def training_stage3(dftrain,dfvalid,cat):
     else:
         scv = cla.score(Xv,Yv)
     print '**********************************'
-    print 'classifier',cat,'training score',sct
-    print 'classifier',cat,'validation score',scv
+    print 'Stage 3',cat,'training score',sct
+    print 'Stage 3',cat,'validation score',scv
     print '**********************************'
     joblib.dump((labels,vec,cla),fname)
     del vec,cla
@@ -115,6 +108,7 @@ def training_stage3(dftrain,dfvalid,cat):
 # from training set
 #####################
 
+# reference model is limited to ~1M rows balanced train set with ~4500 unique Categorie3 labels
 dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
 create_sample(dftrain,'Categorie3',200,10)     #~1M rows
 del dftrain
@@ -138,7 +132,17 @@ dfvalid = dfvalid[['Categorie3','Categorie1','txt']]
 dftest = dftest[['Identifiant_Produit','txt']]
 
 # training stage1
-training_stage1(dftrain,dfvalid)
+
+dt = -time.time()
+sct,scv = training_stage1(dftrain,dfvalid)
+dt += time.time()
+
+print '**********************************'
+print 'stage1 elapsed time :',dt
+print 'stage1 training score :',sct
+print 'stage1 validation score :',scv
+print '**********************************'
+
 
 # training parralel stage3
 cat1 = np.unique(dftrain.Categorie1)
@@ -149,7 +153,19 @@ for cat in cat1:
     dfts.append(dftrain[dftrain.Categorie1 == cat].reset_index(drop=True))
     dfvs.append(dfvalid[dfvalid.Categorie1 == cat].reset_index(drop=True))
 
+
+dt = -time.time()
 scs = Parallel(n_jobs=2)(delayed(training_stage3)(dft,dfv,cat) for dft,dfv,cat in zip(dfts,dfvs,cat1))
+dt += time.time()
+
+sct = np.median([s for s in zip(*scs)[0] if s>=0])
+scv = np.median([s for s in zip(*scs)[1] if s>=0])
+
+print '**********************************'
+print 'stage3 elapsed time :',dt
+print 'stage3 training score :',sct
+print 'stage3 validation score :',scv
+print '**********************************'
 
 #######################
 # predicting
@@ -167,11 +183,15 @@ def log_proba(df,vec,cla):
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
-df = dftest
-#df = dfvalid
+add_txt(dfvalid)
+add_txt(dftest)
 
+
+
+# TODO : HERE choose you flavor dfvalid or dftest !
+# TODO : HERE choose you flavor dfvalid or dftest !
+df = dfvalid
 n = len(df)
-
 
 #######################
 # stage 1 log proba filling
@@ -272,17 +292,21 @@ def submit(df,Y):
 if df is dfvalid:
     score_cat1 = sum(dfvalid.Categorie1 == predict_cat1)*1.0/n
     score_cat3 = sum(dfvalid.Categorie3 == predict_cat3)*1.0/n
-    print 'dfvalid scores =',score_cat1,score_cat3
+    print 'validation score :',score_cat1,score_cat3
 else:
     submit(df,predict_cat3)
 
-###########################
-# benchmark model scores  #
-###########################
-#
-# stage 1 training  score : 
-# stage 1 valid     score :
-#
-# stage 3 training  score :
-# stage 3 valid     score :
-# stage 3 test      score :
+##########################
+# reference model score  #
+##########################
+
+#################################################
+# stage1 elapsed time : 966.20471406
+# stage1 training score : 0.9633
+# stage1 validation score : 0.874375015096
+# stage3 elapsed time : ~1500
+# stage3 training score : 0.984027777778
+# stage3 validation score : 0.863612147043
+# validation score : 0.874375015096 0.68585299872
+# (result30.csv) test score : 63,99060%
+
