@@ -24,6 +24,14 @@ from os.path import isfile
 from joblib import Parallel, delayed
 import time
 
+def add_txt2(df):
+    assert 'Marque' in df.columns
+    assert 'Libelle' in df.columns
+    assert 'Description' in df.columns
+    assert 'prix' in df.columns
+    df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+    return
+
 def vectorizer(txt):
     vec = TfidfVectorizer(
         min_df = 2,
@@ -116,13 +124,13 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage3 : Categorie3|Categorie1
 #######################
 
-dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_1000.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
-add_txt(dftrain)
-add_txt(dfvalid)
-add_txt(dftest)
+add_txt2(dftrain)
+add_txt2(dfvalid)
+add_txt2(dftest)
 
 dftrain = dftrain[['Categorie3','Categorie1','txt']]
 dfvalid = dfvalid[['Categorie3','Categorie1','txt']]
@@ -180,8 +188,8 @@ def log_proba(df,vec,cla):
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
-add_txt(dfvalid)
-add_txt(dftest)
+add_txt2(dfvalid)
+add_txt2(dftest)
 
 
 
@@ -316,7 +324,7 @@ submit(dftest,predict_cat3_test)
 # stage3 training score : 0.984027777778
 # stage3 validation score : 0.863612147043
 # validation score : 0.874375015096 0.68585299872
-# (result30.csv) test score : 63,99060%
+# (resultat30.csv) test score : 63,99060%
 #################################################
 #
 #################################################
@@ -327,12 +335,41 @@ submit(dftest,predict_cat3_test)
 # stage3 training score : 0.9839
 # stage3 validation score : 0.857221006565
 # validation score : 0.874882249221 0.684452066375
-# (result31.csv) test score : 64,01352%
+# (resultat31.csv) test score : 64,01352%
 #################################################
 
 ##########################
 # try model score        #
 ##########################
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+# NOTE : txt += - aucune
+#################################################
+# stage1 elapsed time : 454.965718031
+# stage1 training score : 0.9507
+# stage1 validation score : 0.871838844472
+# stage3 elapsed time : 606.823307991
+# stage3 training score : 0.9737
+# stage3 validation score : 0.85313174946
+# validation score : 0.871838844472 0.658220815922
+#################################################
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+# NOTE : txt += prix - aucune
+#################################################
+# stage1 elapsed time : 485.798226833
+# stage1 training score : 0.9528
+# stage1 validation score : 0.881645370885
+# stage3 elapsed time : 651.525660038
+# stage3 training score : 0.9742
+# stage3 validation score : 0.8525
+# validation score : 0.881645370885 0.663921161325
+# (resultat37.csv) test score : 63,39465%
+#################################################
 
 #################################################
 # NOTE : try a little overfitting...
@@ -345,7 +382,7 @@ submit(dftest,predict_cat3_test)
 # stage3 training score : 0.996666666667
 # stage3 validation score : 0.868978805395
 # validation score : 0.885703243883 0.69662568537
-# (result33.csv) test score : 64,23128%
+# (resultat33.csv) test score : 64,23128%
 #################################################
 
 #################################################
@@ -375,15 +412,6 @@ submit(dftest,predict_cat3_test)
 # validation score : 0.878287964059 0.692930122461
 # (resultat34.csv) test score : N/A ... 
 #################################################
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : ngram=(1,2),max_features=234567,C=15,C=15
-# NOTE : txt += prix - aucune
-#################################################
-#
-# IN PROGRESS ...
-#
 
 
 ##########################
@@ -420,4 +448,6 @@ submit(dftest,predict_cat3_test)
 # validation score : 0.903287360209 0.760633801116
 # (resultat36.csv) test score : 66,36296%
 #################################################
+
+
 

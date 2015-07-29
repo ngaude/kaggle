@@ -6,7 +6,7 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-from utils import wdir,ddir,header,normalize_file
+from utils import wdir,ddir,header,normalize_file,add_txt
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -36,12 +36,6 @@ def vectorizer(txt):
         ngram_range=(1,2))
     X = vec.fit_transform(txt)
     return (vec,X)
-
-def add_txt(df):
-    assert 'Marque' in df.columns
-    assert 'Libelle' in df.columns
-    assert 'Description' in df.columns
-    df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
 
 def create_sample(df,label,mincount,maxsampling):
     fname = ddir+'training_sampled_'+label+'.csv'
@@ -189,11 +183,6 @@ dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).f
 add_txt(dfvalid)
 add_txt(dftest)
 
-
-
-# TODO : HERE choose you flavor dfvalid or dftest !
-# TODO : HERE choose you flavor dfvalid or dftest !
-
 #######################
 # stage 1 log proba filling
 #######################
@@ -249,33 +238,6 @@ print '<<< dump stage1 & stage2 log_proba'
 # (stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/log_proba_valid')
 # (stage1_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/log_proba_test')
 ##################
-
-## FIXME
-## FIXME
-## FIXME
-## >>>>>
-#
-## greedy approach:
-#(stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(fname)
-#
-##predict_cat1_valid = [itocat1[i] for i in np.argmax(stage1_log_proba_valid,axis=1)]
-#
-#for i,cat1 in enumerate(predict_cat1_valid):
-#    if i%1000==0:
-#        print 1.*i/len(predict_cat1_valid)
-#    for j in [k for k,cat3 in enumerate(itocat3) if cat3tocat1[cat3] != cat1]:
-#        stage3_log_proba_valid[i,j] = -666
-#
-#predict_cat3_valid = [itocat3[i] for i in np.argmax(stage3_log_proba_valid,axis=1)]
-#
-#score_cat1 = sum(dfvalid.Categorie1 == predict_cat1_valid)*1.0/len(dfvalid)
-#score_cat3 = sum(dfvalid.Categorie3 == predict_cat3_valid)*1.0/len(dfvalid)
-#print 'dfvalid scores =',score_cat1,score_cat3
-#
-## <<<<<
-## FIXME
-## FIXME
-## FIXME
 
 ##################
 # bayes rulez ....

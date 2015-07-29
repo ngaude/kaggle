@@ -222,12 +222,16 @@ def adasyn_sample(X,Y,minclass,K=5,n=200):
     Xadasyn = sparse.vstack(Xs)  
     return Xadasyn
 
+#def add_txt(df):
+#    assert 'Marque' in df.columns
+#    assert 'Libelle' in df.columns
+#    assert 'Description' in df.columns
+#    assert 'prix' in df.columns
+#    df['txt'] = 'px'+(np.log2(df.prix+1)).astype(int).astype(str)+' '+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+#    return
+
 def add_txt(df):
     assert 'Marque' in df.columns
     assert 'Libelle' in df.columns
     assert 'Description' in df.columns
-    assert 'prix' in df.columns
-    df['txt'] = 'px'+(np.log2(df.prix+1)).astype(int).astype(str)+' '+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
-    return
-
-
+    df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
