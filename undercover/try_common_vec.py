@@ -59,16 +59,26 @@ def training_stage1(dftrain,dfvalid):
     Y = df['Categorie1'].values
     cla = LogisticRegression(C=5)
     cla.fit(X,Y)
+    cla.sparsify()
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
     Yv = dfv['Categorie1'].values
     sct = cla.score(X[:10000],Y[:10000])
     scv = cla.score(Xv,Yv)
     joblib.dump((labels,vec,cla),fname)
-    del X,Y,Xv,Yv,vec,cla
-    return sct,scv
+    del X,Y,Xv,Yv,cla
+    return vec,sct,scv
 
-def training_stage3(dftrain,dfvalid,cat,i):
+X = vec.transform(dftrain.txt)
+Y = dftrain['Categorie1'].values
+
+(labels,vec,cla) = joblib.load(ddir + 'joblib/stage1')
+Xv = vec.transform(dfvalid.txt)
+Yv = dfvalid['Categorie1'].values
+sct = cla.score(X[:10000],Y[:10000])
+scv = cla.score(Xv,Yv)
+
+def training_stage3(dftrain,dfvalid,cat,i,vec):
     fname = ddir + 'joblib/stage3_'+str(cat)
     print '-'*50
     print 'training',basename(fname),':',cat,'(',i,')'
@@ -82,11 +92,12 @@ def training_stage3(dftrain,dfvalid,cat,i):
         sct = -1
         return (sct,scv)
     print 'samples=',len(df)
-    vec,X = vectorizer(df.txt)
+    X = vec.transform(df.txt)
     Y = df['Categorie3'].values
     dt = -time.time()
     cla = LogisticRegression(C=5)
     cla.fit(X,Y)
+    cla.sparsify()
     dt += time.time()
     print 'training time',cat,':',dt
     labels = np.unique(df.Categorie3)
@@ -137,7 +148,7 @@ dftest = dftest[['Identifiant_Produit','txt']]
 # training stage1
 
 dt = -time.time()
-sct,scv = training_stage1(dftrain,dfvalid)
+vec,sct,scv = training_stage1(dftrain,dfvalid)
 dt += time.time()
 
 print '**********************************'
@@ -158,7 +169,7 @@ for cat in cat1:
 
 
 dt = -time.time()
-scs = Parallel(n_jobs=3)(delayed(training_stage3)(dft,dfv,cat,i) for i,(dft,dfv,cat) in enumerate(zip(dfts,dfvs,cat1)))
+scs = Parallel(n_jobs=3)(delayed(training_stage3)(dft,dfv,cat,i,vec) for i,(dft,dfv,cat) in enumerate(zip(dfts,dfvs,cat1)))
 dt += time.time()
 
 sct = np.median([s for s in zip(*scs)[0] if s>=0])
@@ -244,7 +255,6 @@ joblib.dump((stage1_log_proba_valid,stage3_log_proba_valid),ddir+'/joblib/log_pr
 joblib.dump((stage1_log_proba_test,stage3_log_proba_test),ddir+'/joblib/log_proba_test')
 print '<<< dump stage1 & stage2 log_proba'
 
-
 ##################
 # (stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/log_proba_valid')
 # (stage1_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/log_proba_test')
@@ -281,7 +291,7 @@ print '<<< dump stage1 & stage2 log_proba'
 # bayes rulez ....
 ##################
 
-assert stage3_log_proba_valid.shape[1] == stage3_log_proba_test.shape[1]
+assert stage3_log_proba_valid.shape[1] = stage3_log_proba_valid.test[1]
 
 for i in range(stage3_log_proba_valid.shape[1]):
     cat3 = itocat3[i]
@@ -336,3 +346,17 @@ submit(dftest,predict_cat3_test)
 # (result31.csv) test score : 64,01352%
 #################################################
 
+##########################
+# try model score        #
+##########################
+
+#################################################
+# stage1 elapsed time : 448.81675601
+# stage1 training score : 0.95689999999999997
+# stage1 validation score : 0.8748822492210333
+# stage3 elapsed time : 954.282519102
+# stage3 training score : 0.9714
+# stage3 validation score : 0.842147435897
+# validation score : 0.874882249221 0.683799908215
+# (result32.csv) test score : 63,19409%
+#################################################

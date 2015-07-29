@@ -27,8 +27,8 @@ import time
 def vectorizer(txt):
     vec = TfidfVectorizer(
         min_df = 2,
-        stop_words = None,
-        max_features=123456,
+        stop_words = ['aucune',],
+        max_features=234567,
         smooth_idf=True,
         norm='l2',
         sublinear_tf=True,
@@ -41,7 +41,8 @@ def add_txt(df):
     assert 'Marque' in df.columns
     assert 'Libelle' in df.columns
     assert 'Description' in df.columns
-    df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+    assert 'prix' in df.columns
+    df['txt'] = (np.log2(df.prix+1)).astype(int).astype(str)+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
 
 def create_sample(df,label,mincount,maxsampling):
     fname = ddir+'training_sampled_'+label+'.csv'
@@ -57,7 +58,7 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = vectorizer(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=5)
+    cla = LogisticRegression(C=15)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -85,7 +86,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
     vec,X = vectorizer(df.txt)
     Y = df['Categorie3'].values
     dt = -time.time()
-    cla = LogisticRegression(C=5)
+    cla = LogisticRegression(C=15)
     cla.fit(X,Y)
     dt += time.time()
     print 'training time',cat,':',dt
@@ -122,7 +123,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage3 : Categorie3|Categorie1
 #######################
 
-dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_1000.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
@@ -336,3 +337,69 @@ submit(dftest,predict_cat3_test)
 # (result31.csv) test score : 64,01352%
 #################################################
 
+##########################
+# try model score        #
+##########################
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : max_features=234567,C=15,C=15
+#################################################
+# stage1 elapsed time : 609.610999107
+# stage1 training score : 0.9855
+# stage1 validation score : 0.885703243883
+# stage3 elapsed time : 755.03502202
+# stage3 training score : 0.996666666667
+# stage3 validation score : 0.868978805395
+# validation score : 0.885703243883 0.69662568537
+# (result33.csv) test score : 64,23128%
+#################################################
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,1),max_features=234567,C=7,C=12
+#################################################
+# stage1 elapsed time : 372.746254921
+# stage1 training score : 0.9599
+# stage1 validation score : 0.860607231709
+# stage3 elapsed time : 279.376597166
+# stage3 training score : 0.989324324324
+# stage3 validation score : 0.848468271335
+#################################################
+
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,3),max_features=234567,C=30,C=30
+# NOTE : txt += prix -'aucune' 
+#################################################
+# stage1 elapsed time : 867.313969851
+# stage1 training score : 0.9896
+# stage1 validation score : 0.878287964059
+# stage3 elapsed time : 1354.72009516
+# stage3 training score : 0.9986
+# stage3 validation score : 0.866666666667
+# validation score : 0.878287964059 0.692930122461
+#################################################
+
+
+
+##########################
+# candidate top model    #
+##########################
+
+
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=15,C=15
+# NOTE : txt += log.prix
+#################################################
+# stage1 elapsed time : 867.313969851
+# stage1 training score : 0.9896
+# stage1 validation score : 0.878287964059
+# stage3 elapsed time : 1354.72009516
+# stage3 training score : 0.9986
+# stage3 validation score : 0.866666666667
+# validation score : 0.878287964059 0.692930122461
+#################################################
