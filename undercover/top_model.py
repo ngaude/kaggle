@@ -6,12 +6,10 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-from utils import wdir,ddir,header,normalize_file,iterText
-from utils import MarisaTfidfVectorizer
+from utils import wdir,ddir,header,normalize_file,add_txt
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.externals import joblib
 from os.path import basename
@@ -24,14 +22,13 @@ from utils import training_sample
 from os.path import isfile
 
 from joblib import Parallel, delayed
-from multiprocessing import Manager
 import time
 
 def vectorizer(txt):
     vec = TfidfVectorizer(
         min_df = 2,
-        stop_words = None,
-        max_features=123456,
+        stop_words = ['aucune',],
+        max_features=234567,
         smooth_idf=True,
         norm='l2',
         sublinear_tf=True,
@@ -39,12 +36,6 @@ def vectorizer(txt):
         ngram_range=(1,2))
     X = vec.fit_transform(txt)
     return (vec,X)
-
-def add_txt(df):
-    assert 'Marque' in df.columns
-    assert 'Libelle' in df.columns
-    assert 'Description' in df.columns
-    df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
 
 def create_sample(df,label,mincount,maxsampling):
     fname = ddir+'training_sampled_'+label+'.csv'
@@ -54,32 +45,27 @@ def create_sample(df,label,mincount,maxsampling):
 
 def training_stage1(dftrain,dfvalid):
     fname = ddir + 'joblib/stage1'
+    print '-'*50
+    print 'training',basename(fname)
     df = dftrain
     dfv = dfvalid
     vec,X = vectorizer(df.txt)
     Y = df['Categorie1'].values
-    dt = -time.time()
-    cla = LogisticRegression(C=5)
+    cla = LogisticRegression(C=3)
     cla.fit(X,Y)
-    dt += time.time()
-    print 'training time',dt
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
     Yv = dfv['Categorie1'].values
     sct = cla.score(X[:10000],Y[:10000])
     scv = cla.score(Xv,Yv)
-    print '**********************************'
-    print 'classifier training score',sct
-    print 'classifier validation score',scv
-    print '**********************************'
     joblib.dump((labels,vec,cla),fname)
     del X,Y,Xv,Yv,vec,cla
-    return
+    return sct,scv
 
-def training_stage3(dftrain,dfvalid,cat):
+def training_stage3(dftrain,dfvalid,cat,i):
     fname = ddir + 'joblib/stage3_'+str(cat)
     print '-'*50
-    print 'training',basename(fname),':',cat
+    print 'training',basename(fname),':',cat,'(',i,')'
     df = dftrain[dftrain.Categorie1 == cat].reset_index(drop=True)
     dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index(drop=True)
     labels = np.unique(df.Categorie3)
@@ -93,7 +79,7 @@ def training_stage3(dftrain,dfvalid,cat):
     vec,X = vectorizer(df.txt)
     Y = df['Categorie3'].values
     dt = -time.time()
-    cla = LogisticRegression(C=5)
+    cla = LogisticRegression(C=3)
     cla.fit(X,Y)
     dt += time.time()
     print 'training time',cat,':',dt
@@ -106,8 +92,8 @@ def training_stage3(dftrain,dfvalid,cat):
     else:
         scv = cla.score(Xv,Yv)
     print '**********************************'
-    print 'classifier',cat,'training score',sct
-    print 'classifier',cat,'validation score',scv
+    print 'Stage 3',cat,'training score',sct
+    print 'Stage 3',cat,'validation score',scv
     print '**********************************'
     joblib.dump((labels,vec,cla),fname)
     del vec,cla
@@ -118,9 +104,11 @@ def training_stage3(dftrain,dfvalid,cat):
 # from training set
 #####################
 
-dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
-create_sample(dftrain,'Categorie3',1000,50)     #~5M rows
-del dftrain
+# NOTE : reference model is limited to ~1M rows balanced train set with ~4500 unique Categorie3 labels
+#
+# dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
+# create_sample(dftrain,'Categorie3',200,10)     #~1M rows
+# del dftrain
 
 #######################
 # training
@@ -128,7 +116,7 @@ del dftrain
 # stage3 : Categorie3|Categorie1
 #######################
 
-dftrain = pd.read_csv(ddir+'training_sampled_Categorie3.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_1000.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
@@ -141,7 +129,17 @@ dfvalid = dfvalid[['Categorie3','Categorie1','txt']]
 dftest = dftest[['Identifiant_Produit','txt']]
 
 # training stage1
-training_stage1(dftrain,dfvalid)
+
+dt = -time.time()
+sct,scv = training_stage1(dftrain,dfvalid)
+dt += time.time()
+
+print '**********************************'
+print 'stage1 elapsed time :',dt
+print 'stage1 training score :',sct
+print 'stage1 validation score :',scv
+print '**********************************'
+
 
 # training parralel stage3
 cat1 = np.unique(dftrain.Categorie1)
@@ -152,7 +150,19 @@ for cat in cat1:
     dfts.append(dftrain[dftrain.Categorie1 == cat].reset_index(drop=True))
     dfvs.append(dfvalid[dfvalid.Categorie1 == cat].reset_index(drop=True))
 
-scs = Parallel(n_jobs=2)(delayed(training_stage3)(dft,dfv,cat) for dft,dfv,cat in zip(dfts,dfvs,cat1))
+
+dt = -time.time()
+scs = Parallel(n_jobs=3)(delayed(training_stage3)(dft,dfv,cat,i) for i,(dft,dfv,cat) in enumerate(zip(dfts,dfvs,cat1)))
+dt += time.time()
+
+sct = np.median([s for s in zip(*scs)[0] if s>=0])
+scv = np.median([s for s in zip(*scs)[1] if s>=0])
+
+print '**********************************'
+print 'stage3 elapsed time :',dt
+print 'stage3 training score :',sct
+print 'stage3 validation score :',scv
+print '**********************************'
 
 #######################
 # predicting
@@ -162,30 +172,36 @@ scs = Parallel(n_jobs=2)(delayed(training_stage3)(dft,dfv,cat) for dft,dfv,cat i
 # P(Categorie3) = P(Categorie1) *  P(Categorie3|Categorie1)
 
 def log_proba(df,vec,cla):
-    X = vec.transform(iterText(df))
+    assert 'txt' in df.columns
+    X = vec.transform(df.txt)
     lp = cla.predict_log_proba(X)
     return (cla.classes_,lp)
 
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
-df = dftest
-#df = dfvalid
+add_txt(dfvalid)
+add_txt(dftest)
 
-n = len(df)
 
+
+# TODO : HERE choose you flavor dfvalid or dftest !
+# TODO : HERE choose you flavor dfvalid or dftest !
 
 #######################
 # stage 1 log proba filling
 #######################
-stage1_log_proba = np.full(shape=(n,cat1count),fill_value = -666.,dtype = float)
+stage1_log_proba_valid = np.full(shape=(len(dfvalid),cat1count),fill_value = -666.,dtype = float)
+stage1_log_proba_test = np.full(shape=(len(dftest),cat1count),fill_value = -666.,dtype = float)
 
 fname = ddir + 'joblib/stage1'
 (labels,vec,cla) = joblib.load(fname)
-(classes,lp) = log_proba(df,vec,cla)
+(classes,lpv) = log_proba(dfvalid,vec,cla)
+(classes,lpt) = log_proba(dftest,vec,cla)
 for i,k in enumerate(classes):
     j = cat1toi[k]
-    stage1_log_proba[:,j] = lp[:,i]
+    stage1_log_proba_valid[:,j] = lpv[:,i]
+    stage1_log_proba_test[:,j] = lpt[:,i]
 
 del labels,vec,cla
 
@@ -193,7 +209,8 @@ del labels,vec,cla
 #######################
 # stage 3 log proba filling
 #######################
-stage3_log_proba = np.full(shape=(n,cat3count),fill_value = -666.,dtype = float)
+stage3_log_proba_valid = np.full(shape=(len(dfvalid),cat3count),fill_value = -666.,dtype = float)
+stage3_log_proba_test = np.full(shape=(len(dftest),cat3count),fill_value = -666.,dtype = float)
 
 for ii,cat in enumerate(itocat1):
     fname = ddir + 'joblib/stage3_'+str(cat)
@@ -205,23 +222,26 @@ for ii,cat in enumerate(itocat1):
     if len(labels)==1:
         k = labels[0]
         j = cat3toi[k]
-        stage3_log_proba[:,j] = 0
+        stage3_log_proba_valid[:,j] = 0
+        stage3_log_proba_test[:,j] = 0
         continue
-    (classes,lp) = log_proba(df,vec,cla)
+    (classes,lpv) = log_proba(dfvalid,vec,cla)
+    (classes,lpt) = log_proba(dftest,vec,cla)
     for i,k in enumerate(classes):
         j = cat3toi[k]
-        stage3_log_proba[:,j] = lp[:,i]
+        stage3_log_proba_valid[:,j] = lpv[:,i]
+        stage3_log_proba_test[:,j] = lpt[:,i]
     del labels,vec,cla
 
-if (df is dfvalid):
-    fname = ddir+'/joblib/log_proba_valid'
-else:
-    fname = ddir+'/joblib/log_proba_test'
+print '>>> dump stage1 & stage2 log_proba'
+joblib.dump((stage1_log_proba_valid,stage3_log_proba_valid),ddir+'/joblib/log_proba_valid')
+joblib.dump((stage1_log_proba_test,stage3_log_proba_test),ddir+'/joblib/log_proba_test')
+print '<<< dump stage1 & stage2 log_proba'
 
-joblib.dump((stage1_log_proba,stage3_log_proba),fname)
 
 ##################
-# (stage1_log_proba,stage3_log_proba) = joblib.load(fname)
+# (stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/log_proba_valid')
+# (stage1_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/log_proba_test')
 ##################
 
 ## FIXME
@@ -230,20 +250,20 @@ joblib.dump((stage1_log_proba,stage3_log_proba),fname)
 ## >>>>>
 #
 ## greedy approach:
-#(stage1_log_proba,stage3_log_proba) = joblib.load(fname)
+#(stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(fname)
 #
-##predict_cat1 = [itocat1[i] for i in np.argmax(stage1_log_proba,axis=1)]
+##predict_cat1_valid = [itocat1[i] for i in np.argmax(stage1_log_proba_valid,axis=1)]
 #
-#for i,cat1 in enumerate(predict_cat1):
+#for i,cat1 in enumerate(predict_cat1_valid):
 #    if i%1000==0:
-#        print 1.*i/len(predict_cat1)
+#        print 1.*i/len(predict_cat1_valid)
 #    for j in [k for k,cat3 in enumerate(itocat3) if cat3tocat1[cat3] != cat1]:
-#        stage3_log_proba[i,j] = -666
+#        stage3_log_proba_valid[i,j] = -666
 #
-#predict_cat3 = [itocat3[i] for i in np.argmax(stage3_log_proba,axis=1)]
+#predict_cat3_valid = [itocat3[i] for i in np.argmax(stage3_log_proba_valid,axis=1)]
 #
-#score_cat1 = sum(dfvalid.Categorie1 == predict_cat1)*1.0/n
-#score_cat3 = sum(dfvalid.Categorie3 == predict_cat3)*1.0/n
+#score_cat1 = sum(dfvalid.Categorie1 == predict_cat1_valid)*1.0/len(dfvalid)
+#score_cat3 = sum(dfvalid.Categorie3 == predict_cat3_valid)*1.0/len(dfvalid)
 #print 'dfvalid scores =',score_cat1,score_cat3
 #
 ## <<<<<
@@ -255,14 +275,19 @@ joblib.dump((stage1_log_proba,stage3_log_proba),fname)
 # bayes rulez ....
 ##################
 
-for i in range(stage3_log_proba.shape[1]):
+assert stage3_log_proba_valid.shape[1] == stage3_log_proba_test.shape[1]
+
+for i in range(stage3_log_proba_valid.shape[1]):
     cat3 = itocat3[i]
     cat1 = cat3tocat1[cat3]
     j = cat1toi[cat1]
-    stage3_log_proba[:,i] += stage1_log_proba[:,j]
+    stage3_log_proba_valid[:,i] += stage1_log_proba_valid[:,j]
+    stage3_log_proba_test[:,i] += stage1_log_proba_test[:,j]
 
-predict_cat1 = [itocat1[i] for i in np.argmax(stage1_log_proba,axis=1)]
-predict_cat3 = [itocat3[i] for i in np.argmax(stage3_log_proba,axis=1)]
+predict_cat1_valid = [itocat1[i] for i in np.argmax(stage1_log_proba_valid,axis=1)]
+predict_cat3_valid = [itocat3[i] for i in np.argmax(stage3_log_proba_valid,axis=1)]
+predict_cat1_test = [itocat1[i] for i in np.argmax(stage1_log_proba_test,axis=1)]
+predict_cat3_test = [itocat3[i] for i in np.argmax(stage3_log_proba_test,axis=1)]
 
 def submit(df,Y):
     submit_file = ddir+'resultat.csv'
@@ -271,15 +296,128 @@ def submit(df,Y):
     df= df[['Id_Produit','Id_Categorie']]
     df.to_csv(submit_file,sep=';',index=False)
 
-if df is dfvalid:
-    score_cat1 = sum(dfvalid.Categorie1 == predict_cat1)*1.0/n
-    score_cat3 = sum(dfvalid.Categorie3 == predict_cat3)*1.0/n
-    print 'dfvalid scores =',score_cat1,score_cat3
-else:
-    submit(df,predict_cat3)
+score_cat1 = sum(dfvalid.Categorie1 == predict_cat1_valid)*1.0/len(dfvalid)
+score_cat3 = sum(dfvalid.Categorie3 == predict_cat3_valid)*1.0/len(dfvalid)
+print 'validation score :',score_cat1,score_cat3
+submit(dftest,predict_cat3_test)
 
-# resultat22.csv scored 58,43218% 
-# resultat23.csv scored 52.95399% (2 sampling : for Categorie1 (49*25000) & for Categorie3 (4546*1000) )
-# resultat24.csv scored 61,54948% ( 1000 samples (4546 classes ) with staged 1&3 proba logit)
-# resultat29.csv scored 65,78993% (1000samples/4546classes staged 1&3 optimized tfidf-vectorizer and L2-regularization)
+##########################
+# reference model score  #
+##########################
+# NOTE
+# NOTE
+# NOTE
+# NOTE
+#################################################
+# stage1 elapsed time : 966.20471406
+# stage1 training score : 0.9633
+# stage1 validation score : 0.874375015096
+# stage3 elapsed time : ~1500
+# stage3 training score : 0.984027777778
+# stage3 validation score : 0.863612147043
+# validation score : 0.874375015096 0.68585299872
+# (result30.csv) test score : 63,99060%
+#################################################
+#
+#################################################
+# stage1 elapsed time : 448.81675601
+# stage1 training score : 0.9569
+# stage1 validation score : 0.874882249221
+# stage3 elapsed time : 765.464223146
+# stage3 training score : 0.9839
+# stage3 validation score : 0.857221006565
+# validation score : 0.874882249221 0.684452066375
+# (result31.csv) test score : 64,01352%
+#################################################
+
+##########################
+# try model score        #
+##########################
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : max_features=234567,C=15,C=15
+#################################################
+# stage1 elapsed time : 609.610999107
+# stage1 training score : 0.9855
+# stage1 validation score : 0.885703243883
+# stage3 elapsed time : 755.03502202
+# stage3 training score : 0.996666666667
+# stage3 validation score : 0.868978805395
+# validation score : 0.885703243883 0.69662568537
+# (result33.csv) test score : 64,23128%
+#################################################
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,1),max_features=234567,C=7,C=12
+#################################################
+# stage1 elapsed time : 372.746254921
+# stage1 training score : 0.9599
+# stage1 validation score : 0.860607231709
+# stage3 elapsed time : 279.376597166
+# stage3 training score : 0.989324324324
+# stage3 validation score : 0.848468271335
+#################################################
+
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,3),max_features=234567,C=30,C=30
+# NOTE : txt += bugged prix -'aucune' 
+#################################################
+# stage1 elapsed time : 867.313969851
+# stage1 training score : 0.9896
+# stage1 validation score : 0.878287964059
+# stage3 elapsed time : 1354.72009516
+# stage3 training score : 0.9986
+# stage3 validation score : 0.866666666667
+# validation score : 0.878287964059 0.692930122461
+# (resultat34.csv) test score : N/A ... 
+#################################################
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=15,C=15
+# NOTE : txt += prix - aucune
+#################################################
+#
+# IN PROGRESS ...
+#
+
+
+##########################
+# candidate top model    #
+##########################
+
+#################################################
+# NOTE : try a little overfitting... !!! WAY TOO MUCH 
+# NOTE : ngram=(1,2),max_features=234567,C=30,C=30
+# NOTE : bugged prix ....
+#################################################
+# stage1 elapsed time : 867.313969851
+# stage1 training score : 0.9896
+# stage1 validation score : 0.878287964059
+# stage3 elapsed time : 7316.10999107
+# stage3 training score : 0.9968
+# stage3 validation score : 0.926194797338
+# validation score : 0.911741262288 0.779135769667
+# (resultat35.csv) test score : 65,31431%
+#################################################
+
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+# NOTE : bugged prix !
+#################################################
+# stage1 elapsed time : 6467.86811399
+# stage1 training score : 0.9732
+# stage1 validation score : 0.903287360209
+# stage3 elapsed time : 5990.12330294
+# stage3 training score : 0.9863
+# stage3 validation score : 0.905281285878
+# validation score : 0.903287360209 0.760633801116
+# (resultat36.csv) test score : 66,36296%
+#################################################
 

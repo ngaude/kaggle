@@ -228,5 +228,4 @@ def add_txt(df):
     assert 'Description' in df.columns
     assert 'prix' in df.columns
     df['txt'] = 'px'+(np.log2(df.prix+1)).astype(int).astype(str)+' '+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
-
-
+    return

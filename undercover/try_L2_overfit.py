@@ -51,7 +51,7 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = vectorizer(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=15)
+    cla = LogisticRegression(C=3)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -79,7 +79,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
     vec,X = vectorizer(df.txt)
     Y = df['Categorie3'].values
     dt = -time.time()
-    cla = LogisticRegression(C=15)
+    cla = LogisticRegression(C=3)
     cla.fit(X,Y)
     dt += time.time()
     print 'training time',cat,':',dt
@@ -364,7 +364,7 @@ submit(dftest,predict_cat3_test)
 #################################################
 # NOTE : try a little overfitting...
 # NOTE : ngram=(1,3),max_features=234567,C=30,C=30
-# NOTE : txt += prix -'aucune' 
+# NOTE : txt += bugged prix -'aucune' 
 #################################################
 # stage1 elapsed time : 867.313969851
 # stage1 training score : 0.9896
@@ -373,8 +373,17 @@ submit(dftest,predict_cat3_test)
 # stage3 training score : 0.9986
 # stage3 validation score : 0.866666666667
 # validation score : 0.878287964059 0.692930122461
+# (resultat34.csv) test score : N/A ... 
 #################################################
 
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=15,C=15
+# NOTE : txt += prix - aucune
+#################################################
+#
+# IN PROGRESS ...
+#
 
 
 ##########################
@@ -382,14 +391,33 @@ submit(dftest,predict_cat3_test)
 ##########################
 
 #################################################
-# NOTE : try a little overfitting...
-# NOTE : ngram=(1,2),max_features=234567,C=15,C=15
+# NOTE : try a little overfitting... !!! WAY TOO MUCH 
+# NOTE : ngram=(1,2),max_features=234567,C=30,C=30
+# NOTE : bugged prix ....
 #################################################
 # stage1 elapsed time : 867.313969851
 # stage1 training score : 0.9896
-# stage1 validation score : 0.878287964059
-# stage3 elapsed time : 1354.72009516
-# stage3 training score : 0.9986
-# stage3 validation score : 0.866666666667
-# validation score : 0.878287964059 0.692930122461
+# stage1 validation score : 0.878287964059
+# stage3 elapsed time : 7316.10999107
+# stage3 training score : 0.9968
+# stage3 validation score : 0.926194797338
+# validation score : 0.911741262288 0.779135769667
+# (resultat35.csv) test score : 65,31431%
 #################################################
+
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+# NOTE : bugged prix !
+#################################################
+# stage1 elapsed time : 6467.86811399
+# stage1 training score : 0.9732
+# stage1 validation score : 0.903287360209
+# stage3 elapsed time : 5990.12330294
+# stage3 training score : 0.9863
+# stage3 validation score : 0.905281285878
+# validation score : 0.903287360209 0.760633801116
+# (resultat36.csv) test score : 66,36296%
+#################################################
+
