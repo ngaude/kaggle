@@ -1,7 +1,7 @@
 import marisa_trie
 from sklearn.externals import six
 from sklearn.feature_extraction.text import TfidfVectorizer
-#import Stemmer
+#import Stemmer # NOTE : pip install pyStemmer
 import nltk
 from bs4 import BeautifulSoup
 import re
@@ -11,6 +11,9 @@ import pandas as pd
 import numpy as np
 import random
 import os
+from sklearn.neighbors import NearestNeighbors
+from scipy import sparse
+
 
 """
 ddir = 'E:/workspace/data/cdiscount/'
@@ -179,3 +182,51 @@ def training_sample(dftrain,label,mincount = 200,maxsampling = 10):
     dfsample = dfsample.reset_index(drop=True)
     dfsample = dfsample.reindex(np.random.permutation(dfsample.index),copy=False)
     return dfsample
+
+
+# @param : X the matrix of vector-space sample
+# @param : Y the labels of sample
+# @param : minclass the "minority" class to sample using ADASYN algorithm
+# @param : K the amount of neighbours to sample for Knn
+# @param : n the "approximate" number of sample to be returned
+# @return : the synthetic matrix of vector-space sample
+# NOTE : if "minority" class sample > n , then returns a random sample without replacement of "minority" class sample e.g. simple undersample behavior
+
+def adasyn_sample(X,Y,minclass,K=5,n=200):
+    indices = np.nonzero(Y==minclass)
+    Ymin = Y[indices]
+    Xmin = X[indices]
+    Cmin = len(indices[0])
+    Xs = []
+    if n > Cmin:
+        Xs.append(Xmin)
+        n -= len(Ymin)
+    else:
+        # simple random without replacement undersampling
+        return Xmin[random.sample(range(Cmin),n)]
+    neigh = NearestNeighbors(n_neighbors=30)
+    neigh.fit(X)
+    nindices = neigh.kneighbors(Xmin,K,False)
+    gamma = [float(sum(Y[i]==minclass))/K for i in nindices]
+    gamma = gamma / np.linalg.norm(gamma,ord = 1)
+    neigh = NearestNeighbors(n_neighbors=30)
+    neigh.fit(Xmin)
+    N = np.round(gamma*n).astype(int)
+    assert len(N) == Cmin
+    for (i,nn) in enumerate(N):
+        nindices = neigh.kneighbors(Xmin[i],K,False)[0]
+        for j in range(nn):
+            alpha = random.random()
+            Xnn = X[random.choice(nindices)]
+            Xs.append((1.-alpha)*Xmin[i]+alpha*Xnn)
+    Xadasyn = sparse.vstack(Xs)  
+    return Xadasyn
+
+def add_txt(df):
+    assert 'Marque' in df.columns
+    assert 'Libelle' in df.columns
+    assert 'Description' in df.columns
+    assert 'prix' in df.columns
+    df['txt'] = 'px'+(np.log2(df.prix+1)).astype(int).astype(str)+' '+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+
+

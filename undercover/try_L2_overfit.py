@@ -6,7 +6,7 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-from utils import wdir,ddir,header,normalize_file
+from utils import wdir,ddir,header,normalize_file,add_txt
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -36,13 +36,6 @@ def vectorizer(txt):
         ngram_range=(1,2))
     X = vec.fit_transform(txt)
     return (vec,X)
-
-def add_txt(df):
-    assert 'Marque' in df.columns
-    assert 'Libelle' in df.columns
-    assert 'Description' in df.columns
-    assert 'prix' in df.columns
-    df['txt'] = (np.log2(df.prix+1)).astype(int).astype(str)+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
 
 def create_sample(df,label,mincount,maxsampling):
     fname = ddir+'training_sampled_'+label+'.csv'
@@ -388,12 +381,9 @@ submit(dftest,predict_cat3_test)
 # candidate top model    #
 ##########################
 
-
-
 #################################################
 # NOTE : try a little overfitting...
 # NOTE : ngram=(1,2),max_features=234567,C=15,C=15
-# NOTE : txt += log.prix
 #################################################
 # stage1 elapsed time : 867.313969851
 # stage1 training score : 0.9896

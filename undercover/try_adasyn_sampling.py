@@ -6,7 +6,7 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-from utils import wdir,ddir,header,normalize_file
+from utils import wdir,ddir,header,normalize_file,adasyn_sample,add_text
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -27,8 +27,8 @@ import time
 def vectorizer(txt):
     vec = TfidfVectorizer(
         min_df = 2,
-        stop_words = None,
-        max_features=123456,
+        stop_words = ['aucune','px0'],
+        max_features=234567,
         smooth_idf=True,
         norm='l2',
         sublinear_tf=True,
@@ -36,18 +36,20 @@ def vectorizer(txt):
         ngram_range=(1,2))
     X = vec.fit_transform(txt)
     return (vec,X)
-
-def add_txt(df):
-    assert 'Marque' in df.columns
-    assert 'Libelle' in df.columns
-    assert 'Description' in df.columns
-    df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
-
-dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
+#dftrain = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
 add_txt(dftrain)
 dftrain = dftrain[['Categorie3','Categorie1','txt']]
-Y3 = dftrain.Categorie3
-Y1 = dftrain.Categorie1
+Y = dftrain.Categorie3.values
 (vec,X) = vectorizer(dftrain.txt)
-joblib.dump((vec,),ddir+'joblib/vectrain')
 
+minclass= 1000014154 # ~ 40 samples in the validation set
+Xa = adasyn_sample(X,Y,minclass,5,1000) # adasynsampling
+Xb = adasyn_sample(X,Y,minclass,5,10) # undersampling
+
+l = vec.get_feature_names()
+[i for i in l if '0' in i]
+
+T = vec.inverse_transform(X)
+Ta = vec.inverse_transform(Xa)
+Tb = vec.inverse_transform(Xb)
