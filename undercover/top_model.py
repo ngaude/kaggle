@@ -6,7 +6,7 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-from utils import wdir,ddir,header,normalize_file,add_txt
+from utils import wdir,ddir,header,normalize_file
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -24,11 +24,20 @@ from os.path import isfile
 from joblib import Parallel, delayed
 import time
 
+
+def add_txt(df):
+    assert 'Marque' in df.columns
+    assert 'Libelle' in df.columns
+    assert 'Description' in df.columns
+    assert 'prix' in df.columns
+    df['txt'] = (np.log2(df.prix+1)).astype(int).astype(str)+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+    return
+
 def vectorizer(txt):
     vec = TfidfVectorizer(
         min_df = 2,
-        stop_words = ['aucune',],
-        max_features=234567,
+        stop_words = None,
+        max_features=345678,
         smooth_idf=True,
         norm='l2',
         sublinear_tf=True,
@@ -51,7 +60,7 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = vectorizer(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=3)
+    cla = LogisticRegression(C=7)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -79,7 +88,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
     vec,X = vectorizer(df.txt)
     Y = df['Categorie3'].values
     dt = -time.time()
-    cla = LogisticRegression(C=3)
+    cla = LogisticRegression(C=7)
     cla.fit(X,Y)
     dt += time.time()
     print 'training time',cat,':',dt
@@ -439,17 +448,11 @@ submit(dftest,predict_cat3_test)
 
 #################################################
 # NOTE : try a little overfitting...
-# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+# NOTE : + 'prixmarque'
+# NOTE : ngram=(1,2),max_features=345678,C=7,C=7
 #################################################
-# stage1 elapsed time : 9269.46249294
-# stage1 training score : 0.9719
-# stage1 validation score : 0.898818869109
-# stage3 elapsed time : 9563.53808308
-# stage3 training score : 0.986
-# stage3 validation score : 0.90355912744
-# validation score : 0.898818869109 0.736479795174
-# (resultat39.csv) test score : 66,21970%
-#################################################
-
+stage1 elapsed time : 10156.420269
+stage1 training score : 0.9855
+stage1 validation score : 0.914374048936
 
 

@@ -48,6 +48,45 @@ def get_sample(dftrain,mincount = 9,maxcount = 647):
     dfsample = dfsample.reindex(np.random.permutation(dfsample.index),copy=False)
     return dfsample
 
+def training_stage1(X,Y,Xv,Yv):
+    fname = ddir + 'joblib/stage1adasyn'
+    print '-'*50
+    print 'training',basename(fname)
+    cla = LogisticRegression(C=1)
+    cla.fit(X,Y)
+    labels = np.unique(Y)
+    sct = cla.score(X[:10000],Y[:10000])
+    scv = cla.score(Xv,Yv)
+    joblib.dump((labels,cla),fname)
+    del X,Y,Xv,Yv,cla
+    return sct,scv
+
+def training_stage3(X,Y,Xv,Yv,cat,i):
+    fname = ddir + 'joblib/stage3adasyn_'+str(cat)
+    labels = np.unique(Y)
+    if len(labels)==1:
+        joblib.dump((labels,None,None),fname)
+        scv = -1
+        sct = -1
+        print 'Stage 3.'+str(i)+':',cat,'score',sct,scv
+        return (sct,scv)
+    cla = LogisticRegression(C=0.1)
+    cla.fit(X,Y)
+    sct = cla.score(X[:min(10000,X.shape[0])],Y[:min(10000,X.shape[0])])
+    if Xv.shape[0]==0:
+        scv = -1
+    else:
+        scv = cla.score(Xv,Yv)
+    print 'Stage 3.'+str(i)+':',cat,'score',sct,scv
+    joblib.dump((labels,cla),fname)
+    del cla
+    return (sct,scv)
+
+#################################################
+# SAMPLING START HERE
+#################################################
+
+
 print 'loading...'
 dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
 print 'txting...'
@@ -78,52 +117,24 @@ Xt = sparse.vstack(Xt)
 assert Xt.shape[0] == len(Yt)
 rows = random.sample(Xt,Xt.shape[0])
 Xt = Xt[rows]
-joblib.dump((vec,Xs,Ys),ddir+'joblib/vecXtYt')
+joblib.dump((vec,Xt,Yt),ddir+'joblib/vecXtYt')
 
 #################################################
 # TRAINING START HERE
 #################################################
 
 
-def training_stage1(X,Y,Xv,Yv):
-    fname = ddir + 'joblib/stage1'
-    print '-'*50
-    print 'training',basename(fname)
-    cla = LogisticRegression(C=5)
-    cla.fit(X,Y)
-    labels = np.unique(Y)
-    sct = cla.score(X[:10000],Y[:10000])
-    scv = cla.score(Xv,Yv)
-    joblib.dump((labels,cla),fname)
-    del X,Y,Xv,Yv,cla
-    return sct,scv
+(vec,X,Y) = joblib.load(ddir+'joblib/vecXtYt_200')
+Z = np.array(map(lambda c:cat3tocat1[c],Y))
 
-def training_stage3(X,Y,Xv,Yv,cat,i):
-    fname = ddir + 'joblib/stage3_'+str(cat)
-    labels = np.unique(Y)
-    if len(labels)==1:
-        print fname,'predict 100% ',labels[0]
-        joblib.dump((labels,None,None),fname)
-        scv = -1
-        sct = -1
-        return (sct,scv)
-    cla = LogisticRegression(C=5)
-    cla.fit(X,Y)
-    sct = cla.score(X[:min(10000,len(df))],Y[:min(10000,len(df))])
-    if len(dfv)==0:
-        scv = -1
-    else:
-        scv = cla.score(Xv,Yv)
-    print 'Stage 3.'+str(i)+':',cat,'score',sct,scv
-    joblib.dump((labels,cla),fname)
-    del cla
-    return (sct,scv)
-
-(vec,ID,X,Y) = joblib.load(ddir+'joblib/vecIDXY')
 dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
 add_txt(dfvalid)
 Xv = vec.transform(dfvalid.txt)
 Yv = dfvalid.Categorie3
+
+
+# training stage1
+
 dt = -time.time()
 sct,scv = training_stage1(X,Y,Xv,Yv)
 dt += time.time()
@@ -136,21 +147,28 @@ print '**********************************'
 
 # training parallel stage3
 
-Z = map(lambda c:cat3tocat1[c], Y)
-Zv = map(lambda c:cat3tocat1[c], Yv)
+Z = map(lambda c:cat3tocat1[c],Y)
+Zv = map(lambda c:cat3tocat1[c],Yv)
 cat1 = np.unique(Z)
 XYs = []
 XYvs = []
 
 for cat in cat1:
-    indices = np.nonzero(Z==cat)
+    indices = np.nonzero(Z==cat)[0]
     XYs.append((X[indices],Y[indices]))
-    indices = np.nonzero(Zv==cat)
+    indices = np.nonzero(Zv==cat)[0]
     XYvs.append((Xv[indices],Yv[indices]))
 
 dt = -time.time()
 scs = Parallel(n_jobs=3)(delayed(training_stage3)(XY[0],XY[1],XYv[0],XYv[1],cat,i) for i,(XY,XYv,cat) in enumerate(zip(XYs,XYvs,cat1)))
 dt += time.time()
+
+"""
+# inline version / no parallel
+scs = []
+for i,(XY,XYv,cat) in enumerate(zip(XYs,XYvs,cat1)):
+    scs.append(training_stage3(XY[0],XY[1],XYv[0],XYv[1],cat,i))
+"""
 
 sct = np.median([s for s in zip(*scs)[0] if s>=0])
 scv = np.median([s for s in zip(*scs)[1] if s>=0])
@@ -190,7 +208,7 @@ Yt = dftest.Categorie3
 stage1_log_proba_valid = np.full(shape=(Xv.shape[0],cat1count),fill_value = -666.,dtype = float)
 stage1_log_proba_test  = np.full(shape=(Xf.shape[0],cat1count),fill_value = -666.,dtype = float)
 
-fname = ddir + 'joblib/stage1'
+fname = ddir + 'joblib/stage1adasyn'
 (labels,cla) = joblib.load(fname)
 (classes,lpv) = log_proba(dfvalid,vec,cla)
 (classes,lpt) = log_proba(dftest,vec,cla)
@@ -209,7 +227,7 @@ stage3_log_proba_valid = np.full(shape=(Xv.shape[0],cat3count),fill_value = -666
 stage3_log_proba_test  = np.full(shape=(Xf.shape[0],cat3count),fill_value = -666.,dtype = float)
 
 for ii,cat in enumerate(itocat1):
-    fname = ddir + 'joblib/stage3_'+str(cat)
+    fname = ddir + 'joblib/stage3adasyn_'+str(cat)
     print '-'*50
     print 'predicting',basename(fname),':',ii,'/',len(itocat1)
     if not isfile(fname): 
