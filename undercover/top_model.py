@@ -421,3 +421,35 @@ submit(dftest,predict_cat3_test)
 # (resultat36.csv) test score : 66,36296%
 #################################################
 
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+#################################################
+# stage1 elapsed time : 9269.46249294
+# stage1 training score : 0.9719
+# stage1 validation score : 0.898818869109
+# stage3 elapsed time : 9563.53808308
+# stage3 training score : 0.986
+# stage3 validation score : 0.90355912744
+# validation score : 0.898818869109 0.736479795174
+# (resultat39.csv) test score : 66,21970%
+#################################################
+
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+#################################################
+# stage1 elapsed time : 9269.46249294
+# stage1 training score : 0.9719
+# stage1 validation score : 0.898818869109
+# stage3 elapsed time : 9563.53808308
+# stage3 training score : 0.986
+# stage3 validation score : 0.90355912744
+# validation score : 0.898818869109 0.736479795174
+# (resultat39.csv) test score : 66,21970%
+#################################################
+
+
+
