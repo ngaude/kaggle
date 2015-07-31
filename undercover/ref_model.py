@@ -117,7 +117,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
 #######################
 
 dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
+dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
 add_txt(dftrain)
@@ -177,7 +177,7 @@ def log_proba(df,vec,cla):
     lp = cla.predict_log_proba(X)
     return (cla.classes_,lp)
 
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
+dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
 add_txt(dfvalid)
@@ -297,4 +297,13 @@ submit(dftest,predict_cat3_test)
 # validation score : 0.874882249221 0.684452066375
 # (result31.csv) test score : 64,01352%
 #################################################
+#
+#
+# TEST WITH NEW validation_perfect.csv file ....
+# stage1 elapsed time : 1182.08965111
+# stage1 training score : 0.9633
+# stage1 validation score : 0.860583523033
+# in progress
+
+
 
