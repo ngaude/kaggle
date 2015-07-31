@@ -30,14 +30,14 @@ def add_txt(df):
     assert 'Libelle' in df.columns
     assert 'Description' in df.columns
     assert 'prix' in df.columns
-    df['txt'] = (np.log2(df.prix+1)).astype(int).astype(str)+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+    df['txt'] = ('px'+(df.prix).astype(int).astype(str)+' ')+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
     return
 
 def vectorizer(txt):
     vec = TfidfVectorizer(
         min_df = 2,
         stop_words = None,
-        max_features=345678,
+        max_features=234567,
         smooth_idf=True,
         norm='l2',
         sublinear_tf=True,
@@ -60,7 +60,7 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = vectorizer(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=7)
+    cla = LogisticRegression(C=3)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -88,7 +88,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
     vec,X = vectorizer(df.txt)
     Y = df['Categorie3'].values
     dt = -time.time()
-    cla = LogisticRegression(C=7)
+    cla = LogisticRegression(C=3)
     cla.fit(X,Y)
     dt += time.time()
     print 'training time',cat,':',dt
@@ -419,6 +419,7 @@ submit(dftest,predict_cat3_test)
 # NOTE : try a little overfitting...
 # NOTE : ngram=(1,2),max_features=234567,C=3,C=3
 # NOTE : bugged prix !
+# FIXME : ???? not sure of parameter ???? 
 #################################################
 # stage1 elapsed time : 6467.86811399
 # stage1 training score : 0.9732
@@ -451,8 +452,36 @@ submit(dftest,predict_cat3_test)
 # NOTE : + 'prixmarque'
 # NOTE : ngram=(1,2),max_features=345678,C=7,C=7
 #################################################
-stage1 elapsed time : 10156.420269
-stage1 training score : 0.9855
-stage1 validation score : 0.914374048936
+# stage1 elapsed time : 10156.420269
+# stage1 training score : 0.9855
+# stage1 validation score : 0.914374048936
+# stage3 elapsed time : 8592.82048512
+# stage3 training score : 0.9933
+# stage3 validation score : 0.921474358974
+# validation score : 0.914374048936 0.782662254535
+# (resultat40.csv) test score : 65,92745%
+#################################################
 
 
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : + 'prixmarque'
+# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+#################################################
+# stage1 elapsed time : 6697.92754388
+# stage1 training score : 0.973
+# stage1 validation score : 0.900678727567
+# stage3 elapsed time : 6489.16675091
+# stage3 training score : 0.9867
+# stage3 validation score : 0.904707233065
+# validation score : 0.900678727567 0.760319799039
+# (resultat41.csv) test score : 66,03060%
+#################################################
+
+#################################################
+# NOTE : try a little overfitting...
+# NOTE : + 'px0 marque'
+# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
+#################################################
+# IN PROGRESS
+#################################################
