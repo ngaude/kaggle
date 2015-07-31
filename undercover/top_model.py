@@ -6,7 +6,7 @@ Created on Mon Jul 06 23:14:18 2015
 @author: ngaude
 """
 
-from utils import wdir,ddir,header,normalize_file
+from utils import wdir,ddir,header,normalize_file,add_txt
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -23,15 +23,6 @@ from os.path import isfile
 
 from joblib import Parallel, delayed
 import time
-
-
-def add_txt(df):
-    assert 'Marque' in df.columns
-    assert 'Libelle' in df.columns
-    assert 'Description' in df.columns
-    assert 'prix' in df.columns
-    df['txt'] = ('px'+(df.prix).astype(int).astype(str)+' ')+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
-    return
 
 def vectorizer(txt):
     vec = TfidfVectorizer(
@@ -192,11 +183,6 @@ dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).f
 add_txt(dfvalid)
 add_txt(dftest)
 
-
-
-# TODO : HERE choose you flavor dfvalid or dftest !
-# TODO : HERE choose you flavor dfvalid or dftest !
-
 #######################
 # stage 1 log proba filling
 #######################
@@ -311,91 +297,6 @@ print 'validation score :',score_cat1,score_cat3
 submit(dftest,predict_cat3_test)
 
 ##########################
-# reference model score  #
-##########################
-# NOTE
-# NOTE
-# NOTE
-# NOTE
-#################################################
-# stage1 elapsed time : 966.20471406
-# stage1 training score : 0.9633
-# stage1 validation score : 0.874375015096
-# stage3 elapsed time : ~1500
-# stage3 training score : 0.984027777778
-# stage3 validation score : 0.863612147043
-# validation score : 0.874375015096 0.68585299872
-# (result30.csv) test score : 63,99060%
-#################################################
-#
-#################################################
-# stage1 elapsed time : 448.81675601
-# stage1 training score : 0.9569
-# stage1 validation score : 0.874882249221
-# stage3 elapsed time : 765.464223146
-# stage3 training score : 0.9839
-# stage3 validation score : 0.857221006565
-# validation score : 0.874882249221 0.684452066375
-# (result31.csv) test score : 64,01352%
-#################################################
-
-##########################
-# try model score        #
-##########################
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : max_features=234567,C=15,C=15
-#################################################
-# stage1 elapsed time : 609.610999107
-# stage1 training score : 0.9855
-# stage1 validation score : 0.885703243883
-# stage3 elapsed time : 755.03502202
-# stage3 training score : 0.996666666667
-# stage3 validation score : 0.868978805395
-# validation score : 0.885703243883 0.69662568537
-# (result33.csv) test score : 64,23128%
-#################################################
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : ngram=(1,1),max_features=234567,C=7,C=12
-#################################################
-# stage1 elapsed time : 372.746254921
-# stage1 training score : 0.9599
-# stage1 validation score : 0.860607231709
-# stage3 elapsed time : 279.376597166
-# stage3 training score : 0.989324324324
-# stage3 validation score : 0.848468271335
-#################################################
-
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : ngram=(1,3),max_features=234567,C=30,C=30
-# NOTE : txt += bugged prix -'aucune' 
-#################################################
-# stage1 elapsed time : 867.313969851
-# stage1 training score : 0.9896
-# stage1 validation score : 0.878287964059
-# stage3 elapsed time : 1354.72009516
-# stage3 training score : 0.9986
-# stage3 validation score : 0.866666666667
-# validation score : 0.878287964059 0.692930122461
-# (resultat34.csv) test score : N/A ... 
-#################################################
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : ngram=(1,2),max_features=234567,C=15,C=15
-# NOTE : txt += prix - aucune
-#################################################
-#
-# IN PROGRESS ...
-#
-
-
-##########################
 # candidate top model    #
 ##########################
 
@@ -490,5 +391,5 @@ submit(dftest,predict_cat3_test)
 # stage3 training score : 0.9865
 # stage3 validation score : 0.904133180253
 # validation score : 0.904784908577 0.764232748001
-# (resultat42.csv) test score : 
+# (resultat42.csv) test score : 65,81858% 
 #################################################

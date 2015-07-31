@@ -20,6 +20,10 @@ import matplotlib.pyplot as plt
 ############################################
 
 dfs = []
+dfs.append(pd.read_csv(ddir+'resultat39.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat40.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat41.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat42.csv',sep=';'))
 dfs.append(pd.read_csv(ddir+'resultat29.csv',sep=';'))
 dfs.append(pd.read_csv(ddir+'resultat31.csv',sep=';'))
 dfs.append(pd.read_csv(ddir+'resultat33.csv',sep=';'))

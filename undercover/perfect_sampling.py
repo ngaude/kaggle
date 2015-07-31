@@ -15,19 +15,11 @@ from sklearn.externals import joblib
 from joblib import Parallel, delayed
 
 
-from utils import wdir,ddir,header
+from utils import wdir,ddir,header,add_txt
 from utils import itocat1,itocat2,itocat3
 from utils import cat1toi,cat2toi,cat3toi
 from utils import cat3tocat2,cat3tocat1,cat2tocat1
 from utils import cat1count,cat2count,cat3count
-
-def add_txt(df):
-    assert 'Marque' in df.columns
-    assert 'Libelle' in df.columns
-    assert 'Description' in df.columns
-    assert 'prix' in df.columns
-    df['txt'] = ('px'+(df.prix).astype(int).astype(str)+' ')+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
-    return
 
 def vectorizer(txt):
     vec = TfidfVectorizer(
@@ -41,6 +33,33 @@ def vectorizer(txt):
         ngram_range=(1,2))
     X = vec.fit_transform(txt)
     return (vec,X)
+
+def training_sample_perfect(dftrain,N = 200,class_ratio = dict()):
+    assert 'D' in dftrain.columns
+    cl = dftrain.Categorie3
+    cc = cl.groupby(cl)
+    s = (cc.count() >= 3)
+    labelmaj = s[s].index
+    print 'sampling ~',N,'samples for any of',len(labelmaj),'classes'
+    dfs = []
+    for i,cat in enumerate(labelmaj):
+        if i%10==0:
+            print i,'/',len(labelmaj),':'
+        df = dftrain[dftrain.Categorie3 == cat]
+        df = df.sort('D',ascending=True)
+        sample_count = int(np.round(N*class_ratio.get(cat,1)))
+        if len(df)>=sample_count:
+            # undersample sample_count samples : take the closest first
+            dfs.append(df[:sample_count])
+        else:
+            # sample all samples + oversample the remaining
+            dfs.append(df)
+            df = df.iloc[np.random.randint(0, len(df), size=sample_count-len(df))]
+            dfs.append(df)
+    dfsample = pd.concat(dfs)
+    dfsample = dfsample.reset_index(drop=True)
+    dfsample = dfsample.reindex(np.random.permutation(dfsample.index),copy=False)
+    return dfsample
 
 ##################
 # VECTORIZING
@@ -172,15 +191,12 @@ class_ratio = joblib.load(ddir+'joblib/class_ratio')
 
 dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
-valid_ids = dfvalid.Identifiant_Produit.values
-
-# then sample from training set according to the class_ratio ratio
-# preferably from the closest neighbors
 
 #flatten IDneighbor to get the set of all_ids that are close from test set
 all_ids = []
 for i in range(IDneighbor.shape[0]):
     all_ids += list(IDneighbor[i,:])
+
 #remove valid_ids from all_ids
 valid_ids = set(dfvalid.Identifiant_Produit.values)
 all_ids = set(all_ids)
@@ -189,38 +205,27 @@ all_ids -= valid_ids
 all_rows = dftrain.Identifiant_Produit.isin(all_ids)
 dftrain = dftrain[all_rows]
 
-def training_sample_perfect(dftrain,N = 200,class_ratio = dict()):
-    cl = dftrain['Categorie3']
-    cc = cl.groupby(cl)
-    s = (cc.count() > 3)
-    labelmaj = s[s].index
-    print len(labelmaj),'classes with ~ ',N,' samples'
-    # TODO
-    # TODO
-    # TODO
-    # TODO
-    # TODO
-    # TODO
-    # TODO
-    dfs = []
-    for i,cat in enumerate(labelmaj):
-        if i%10==0:
-            print i,'/',len(labelmaj),':'
-        df = dftrain[dftrain[label] == cat]
-        mincount = N*class_ratio.get(cat,1)
-        if len(df)>=mincount:
-            # undersample mincount samples
-            rows = random.sample(df.index, mincount)
-            dfs.append(df.ix[rows])
-        else:
-            # sample all samples + oversample the remaining
-            dfs.append(df)
-            df = df.iloc[np.random.randint(0, len(df), size=mincount-len(df))]
-            dfs.append(df)
-    dfsample = pd.concat(dfs)
-    dfsample = dfsample.reset_index(drop=True)
-    dfsample = dfsample.reindex(np.random.permutation(dfsample.index),copy=False)
-    return dfsample
+#add for each selected training sample the min distance to test set
+ID2D = {}
+for i in range(IDneighbor.shape[0]):
+    for j in range(IDneighbor.shape[1]):
+        ID2D[IDneighbor[i,j]] = min(ID2D.get(IDneighbor[i,j],1),Dneighbor[i,j])
 
-dftrain[~valid_rows]
+dftrain['D'] = map(lambda i:ID2D[i],dftrain.Identifiant_Produit)
 
+dfsample = training_sample_perfect(dftrain,N=200,class_ratio=class_ratio)
+
+dfsample.to_csv(ddir+'training_perfect.csv',sep=';',index=False,header=False)
+
+####################
+# sanity check :
+####################
+
+sid = dfsample.Identifiant_Produit.values
+vid = dfvalid.Identifiant_Produit.values
+
+# no duplicate in validation set
+assert len(vid) == len(set(vid))
+
+# no intersection between training and validation set
+assert not set(sid).intersection(set(vid))
