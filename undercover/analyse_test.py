@@ -60,14 +60,24 @@ plt.show()
 
 
 ############################################
-# validation categorie distribution
+# compare with categorie distribution
 ############################################
 
-#dfvalid = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
-dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
+#df = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
+df = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
+df = pd.read_csv(ddir+'resultat.csv',sep=';').fillna('')
+
+if 'Categorie3' in df.columns:
+    label = 'Categorie3'
+    target = 'Identifiant_Produit'
+
+if 'Id_Categorie' in df.columns:
+    label = 'Id_Categorie'
+    target = 'Id_Produit'
 
 
-ccv = dfvalid.groupby('Categorie3').Identifiant_Produit.count()
+
+ccv = df.groupby(label)[target].count()
 ccv.sort(ascending=False)
 ccv = [ccv.get(cat,0) for cat in ccr.index]
 eps = 0.000001
