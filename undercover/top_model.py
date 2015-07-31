@@ -483,5 +483,12 @@ submit(dftest,predict_cat3_test)
 # NOTE : + 'px0 marque'
 # NOTE : ngram=(1,2),max_features=234567,C=3,C=3
 #################################################
-# IN PROGRESS
+# stage1 elapsed time : 6617.0145731
+# stage1 training score : 0.973
+# stage1 validation score : 0.904784908577
+# stage3 elapsed time : 6324.95142794
+# stage3 training score : 0.9865
+# stage3 validation score : 0.904133180253
+# validation score : 0.904784908577 0.764232748001
+# (resultat42.csv) test score : 
 #################################################
