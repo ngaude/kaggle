@@ -37,11 +37,6 @@ def vectorizer(txt):
     X = vec.fit_transform(txt)
     return (vec,X)
 
-def create_sample(df,label,mincount,maxsampling):
-    fname = ddir+'training_sampled_'+label+'.csv'
-    dfsample = training_sample(df,label,mincount,maxsampling)
-    dfsample.to_csv(fname,sep=';',index=False,header=False)
-    return dfsample
 
 def training_stage1(dftrain,dfvalid):
     fname = ddir + 'joblib/stage1'
@@ -51,7 +46,7 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = vectorizer(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=3)
+    cla = LogisticRegression(C=5)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -64,37 +59,30 @@ def training_stage1(dftrain,dfvalid):
 
 def training_stage3(dftrain,dfvalid,cat,i):
     fname = ddir + 'joblib/stage3_'+str(cat)
-    print '-'*50
-    print 'training',basename(fname),':',cat,'(',i,')'
     df = dftrain[dftrain.Categorie1 == cat].reset_index(drop=True)
     dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index(drop=True)
     labels = np.unique(df.Categorie3)
     if len(labels)==1:
-        print fname,'predict 100% ',labels[0]
         joblib.dump((labels,None,None),fname)
         scv = -1
         sct = -1
+        print 'training',cat,'\t\t(',i,') : N=',len(df),'K=',len(labels)
+        print 'training',cat,'\t\t(',i,') : training=',sct,'validation=',scv
         return (sct,scv)
-    print 'samples=',len(df)
     vec,X = vectorizer(df.txt)
     Y = df['Categorie3'].values
-    dt = -time.time()
-    cla = LogisticRegression(C=3)
+    cla = LogisticRegression(C=5)
     cla.fit(X,Y)
-    dt += time.time()
-    print 'training time',cat,':',dt
     labels = np.unique(df.Categorie3)
-    Xv = vec.transform(dfv.txt)
-    Yv = dfv['Categorie3'].values
     sct = cla.score(X[:min(10000,len(df))],Y[:min(10000,len(df))])
     if len(dfv)==0:
         scv = -1
     else:
+        Xv = vec.transform(dfv.txt)
+        Yv = dfv['Categorie3'].values
         scv = cla.score(Xv,Yv)
-    print '**********************************'
-    print 'Stage 3',cat,'training score',sct
-    print 'Stage 3',cat,'validation score',scv
-    print '**********************************'
+    print 'training',cat,'\t\t(',i,') : N=',len(df),'K=',len(labels)
+    print 'training',cat,'\t\t(',i,') : training=',sct,'validation=',scv
     joblib.dump((labels,vec,cla),fname)
     del vec,cla
     return (sct,scv)
@@ -116,8 +104,8 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage3 : Categorie3|Categorie1
 #######################
 
-dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_1000.csv',sep=';',names = header()).fillna('')
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_perfect.csv',sep=';',names = header()+['D',],).fillna('')
+dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
 add_txt(dftrain)
@@ -134,11 +122,11 @@ dt = -time.time()
 sct,scv = training_stage1(dftrain,dfvalid)
 dt += time.time()
 
-print '**********************************'
-print 'stage1 elapsed time :',dt
-print 'stage1 training score :',sct
-print 'stage1 validation score :',scv
-print '**********************************'
+print '##################################'
+print '# stage1 elapsed time :',dt
+print '# stage1 training score :',sct
+print '# stage1 validation score :',scv
+print '##################################'
 
 
 # training parralel stage3
@@ -158,11 +146,11 @@ dt += time.time()
 sct = np.median([s for s in zip(*scs)[0] if s>=0])
 scv = np.median([s for s in zip(*scs)[1] if s>=0])
 
-print '**********************************'
-print 'stage3 elapsed time :',dt
-print 'stage3 training score :',sct
-print 'stage3 validation score :',scv
-print '**********************************'
+print '##################################'
+print '# stage3 elapsed time :',dt
+print '# stage3 training score :',sct
+print '# stage3 validation score :',scv
+print '##################################'
 
 #######################
 # predicting
@@ -177,7 +165,7 @@ def log_proba(df,vec,cla):
     lp = cla.predict_log_proba(X)
     return (cla.classes_,lp)
 
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
+dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
 add_txt(dfvalid)
@@ -300,96 +288,17 @@ submit(dftest,predict_cat3_test)
 # candidate top model    #
 ##########################
 
-#################################################
-# NOTE : try a little overfitting... !!! WAY TOO MUCH 
-# NOTE : ngram=(1,2),max_features=234567,C=30,C=30
-# NOTE : bugged prix ....
-#################################################
-# stage1 elapsed time : 867.313969851
-# stage1 training score : 0.9896
-# stage1 validation score : 0.878287964059
-# stage3 elapsed time : 7316.10999107
-# stage3 training score : 0.9968
-# stage3 validation score : 0.926194797338
-# validation score : 0.911741262288 0.779135769667
-# (resultat35.csv) test score : 65,31431%
-#################################################
+##################################
+# NOTE : perfect training & validation on top's 456 NN
+# NOTE : C=5,C=5,max_features=234567
+##################################
+# stage1 elapsed time : 3598.16943312
+# stage1 training score : 0.9804
+# stage1 validation score : 0.874329215026
+# stage3 elapsed time : 3542.61673594
+# stage3 training score : 0.9893
+# stage3 validation score : 0.849927849928
+# validation score : 0.874329215026 0.687476600524
+# (resultat44.csv) test score : 66,39161%
+##################################
 
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
-# NOTE : bugged prix !
-# FIXME : ???? not sure of parameter ???? 
-#################################################
-# stage1 elapsed time : 6467.86811399
-# stage1 training score : 0.9732
-# stage1 validation score : 0.903287360209
-# stage3 elapsed time : 5990.12330294
-# stage3 training score : 0.9863
-# stage3 validation score : 0.905281285878
-# validation score : 0.903287360209 0.760633801116
-# (resultat36.csv) test score : 66,36296%
-#################################################
-
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
-#################################################
-# stage1 elapsed time : 9269.46249294
-# stage1 training score : 0.9719
-# stage1 validation score : 0.898818869109
-# stage3 elapsed time : 9563.53808308
-# stage3 training score : 0.986
-# stage3 validation score : 0.90355912744
-# validation score : 0.898818869109 0.736479795174
-# (resultat39.csv) test score : 66,21970%
-#################################################
-
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : + 'prixmarque'
-# NOTE : ngram=(1,2),max_features=345678,C=7,C=7
-#################################################
-# stage1 elapsed time : 10156.420269
-# stage1 training score : 0.9855
-# stage1 validation score : 0.914374048936
-# stage3 elapsed time : 8592.82048512
-# stage3 training score : 0.9933
-# stage3 validation score : 0.921474358974
-# validation score : 0.914374048936 0.782662254535
-# (resultat40.csv) test score : 65,92745%
-#################################################
-
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : + 'prixmarque'
-# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
-#################################################
-# stage1 elapsed time : 6697.92754388
-# stage1 training score : 0.973
-# stage1 validation score : 0.900678727567
-# stage3 elapsed time : 6489.16675091
-# stage3 training score : 0.9867
-# stage3 validation score : 0.904707233065
-# validation score : 0.900678727567 0.760319799039
-# (resultat41.csv) test score : 66,03060%
-#################################################
-
-#################################################
-# NOTE : try a little overfitting...
-# NOTE : + 'px0 marque'
-# NOTE : ngram=(1,2),max_features=234567,C=3,C=3
-#################################################
-# stage1 elapsed time : 6617.0145731
-# stage1 training score : 0.973
-# stage1 validation score : 0.904784908577
-# stage3 elapsed time : 6324.95142794
-# stage3 training score : 0.9865
-# stage3 validation score : 0.904133180253
-# validation score : 0.904784908577 0.764232748001
-# (resultat42.csv) test score : 65,81858% 
-#################################################
