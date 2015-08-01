@@ -118,34 +118,45 @@ joblib.dump((vec,IDtrain,Xtrain,Ytrain),ddir+'joblib/vecIDXYtrain')
 test_count = Xtest.shape[0]
 train_count = Xtrain.shape[0]
 
-import gc
+import gc,sys
 sum([sys.getsizeof(i) for i in gc.get_objects()])
 
-def neighbor_select(test_id,dist,indx):
-    if len(neighbors[test_id])>400:
-        neighbors[test_id].sort()
-        prev =  neighbors[test_id]
-        neighbors[test_id] = list(neighbors[test_id][:neighbor_size])
+def neighbor_select(ngh,test_id,dist,indx,nsize):
+    if len(ngh[test_id])>nsize*2:
+        ngh[test_id].sort()
+        prev =  ngh[test_id]
+        ngh[test_id] = list(ngh[test_id][:nsize])
         del prev
-    neighbors[test_id]+= zip(dist,indx)
+    ngh[test_id]+= zip(dist,indx)
 
-def neighbor_distance(k):
-    return np.median([ zip(*tup[:k])[0] if tup else [1]*k for tup in neighbors])
+def neighbor_median(ngh,k):
+    return np.median([ zip(*tup[:k])[0] if tup else [1]*k for tup in ngh])
 
-neighbors = [[] for i in range(test_count)]
-batch_size = 10000
-k = 5
-neighbor_size = 200
-start_time = time.time()
-for i in range(0,train_count,batch_size):
-    if (i/batch_size)%1==0:
-        print 'neighbor:',i,'/',train_count,'median distance=',neighbor_distance(k),'time=',int(time.time() - start_time),'s'
-    Xb = Xtrain[i:i+min(batch_size,train_count-i)]
-    knn = NearestNeighbors(n_neighbors=k, algorithm='brute',metric='cosine').fit(Xb)
-    dist,indx = knn.kneighbors(Xtest)
-    for j in range(0,test_count):
-        neighbor_select(j,dist[j,:],indx[j,:]+i)
-    del Xb,knn
+def neighbor_distance(X,Xtest,offset=0,neighbor_size=200):
+    n = X.shape[0]
+    lneighbors = [[] for i in range(Xtest.shape[0])]
+    batch_size = 10000
+    k = 30
+    start_time = time.time()
+    for i in range(0,n,batch_size):
+        if (i/batch_size)%1==0:
+            print 'neighbor:',offset+i,'/',n,'median distance=',neighbor_median(lneighbors,k),'time=',int(time.time() - start_time),'s'
+        Xb = X[i:i+min(batch_size,n-i)]
+        knn = NearestNeighbors(n_neighbors=k, algorithm='brute',metric='cosine').fit(Xb)
+        dist,indx = knn.kneighbors(Xtest)
+        for j in range(0,Xtest.shape[0]):
+            neighbor_select(lneighbors,j,dist[j,:],indx[j,:]+i+offset,neighbor_size)
+        del Xb,knn
+    return lneighbors
+
+neighbor_size = 1000
+
+# parallel neighboring distance computation :
+# FIXME : very strange that this did not improve speed !!!
+#step = 1000000
+#lneighbors = Parallel(n_jobs=2)(delayed(neighbor_distance)(Xtrain[i:min(train_count,i+1000000)],Xtest,i,neighbor_size) for i in range(0,train_count,1000000))
+
+neighbors = neighbor_distance(Xtrain,Xtest,offset=0,neighbor_size=1000)
 
 IDneighbor = np.zeros(shape=(test_count,neighbor_size),dtype = int)
 Dneighbor = np.zeros(shape=(test_count,neighbor_size),dtype = float)
@@ -172,7 +183,7 @@ valid_ids = []
 all_ids = []
 for i in range(IDneighbor.shape[0]):
     all_ids += list(IDneighbor[i,:])
-    valid_ids += random.sample(IDneighbor[i,1:11],2)
+    valid_ids += random.sample(IDneighbor[i,5:20],1)
 
 all_ids = set(all_ids)
 valid_ids = set(valid_ids)
@@ -213,7 +224,7 @@ for i in range(IDneighbor.shape[0]):
 
 dftrain['D'] = map(lambda i:ID2D[i],dftrain.Identifiant_Produit)
 
-dfsample = training_sample_perfect(dftrain,N=200,class_ratio=class_ratio)
+dfsample = training_sample_perfect(dftrain,N=456,class_ratio=class_ratio)
 
 dfsample.to_csv(ddir+'training_perfect.csv',sep=';',index=False,header=False)
 
@@ -229,3 +240,12 @@ assert len(vid) == len(set(vid))
 
 # no intersection between training and validation set
 assert not set(sid).intersection(set(vid))
+
+# ensuring Categorie are not too deplated
+df = dfsample[['Identifiant_Produit','Categorie3']].drop_duplicates()
+cc = df.groupby('Categorie3').count().values
+print 'mean   =',np.mean(cc)
+print 'median =',np.percentile(cc,50)
+print '1/10   =',np.percentile(cc,10)
+print '9/10   =',np.percentile(cc,90)
+
