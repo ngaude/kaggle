@@ -37,7 +37,6 @@ def vectorizer(txt):
     X = vec.fit_transform(txt)
     return (vec,X)
 
-
 def training_stage1(dftrain,dfvalid):
     fname = ddir + 'joblib/stage1'
     print '-'*50
@@ -226,33 +225,6 @@ print '<<< dump stage1 & stage2 log_proba'
 # (stage1_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/log_proba_test')
 ##################
 
-## FIXME
-## FIXME
-## FIXME
-## >>>>>
-#
-## greedy approach:
-#(stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(fname)
-#
-##predict_cat1_valid = [itocat1[i] for i in np.argmax(stage1_log_proba_valid,axis=1)]
-#
-#for i,cat1 in enumerate(predict_cat1_valid):
-#    if i%1000==0:
-#        print 1.*i/len(predict_cat1_valid)
-#    for j in [k for k,cat3 in enumerate(itocat3) if cat3tocat1[cat3] != cat1]:
-#        stage3_log_proba_valid[i,j] = -666
-#
-#predict_cat3_valid = [itocat3[i] for i in np.argmax(stage3_log_proba_valid,axis=1)]
-#
-#score_cat1 = sum(dfvalid.Categorie1 == predict_cat1_valid)*1.0/len(dfvalid)
-#score_cat3 = sum(dfvalid.Categorie3 == predict_cat3_valid)*1.0/len(dfvalid)
-#print 'dfvalid scores =',score_cat1,score_cat3
-#
-## <<<<<
-## FIXME
-## FIXME
-## FIXME
-
 ##################
 # bayes rulez ....
 ##################
@@ -286,6 +258,14 @@ submit(dftest,predict_cat3_test)
 ##########################
 # candidate top model    #
 ##########################
+
+##################################
+# NOTE : perfect training & validation on top's 647 NN
+# NOTE : C=5,C=5,max_features=234567
+##################################
+# in progress ....
+# (resultat50.csv) ....
+##################################
 
 ##################################
 # NOTE : perfect training & validation on top's 456 NN

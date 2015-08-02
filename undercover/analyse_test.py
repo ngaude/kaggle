@@ -20,17 +20,12 @@ import matplotlib.pyplot as plt
 ############################################
 
 dfs = []
-dfs.append(pd.read_csv(ddir+'resultat39.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat40.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat41.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat42.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat29.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat31.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat33.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat35.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat36.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat37.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat38.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat44.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat45.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat46.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat47.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat48.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat49.csv',sep=';'))
 
 df = pd.concat(dfs)
 
@@ -64,8 +59,8 @@ plt.show()
 ############################################
 
 #df = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
-df = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
-df = pd.read_csv(ddir+'resultat.csv',sep=';').fillna('')
+#df = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
+df = pd.read_csv(ddir+'resultat44.csv',sep=';').fillna('')
 
 if 'Categorie3' in df.columns:
     label = 'Categorie3'

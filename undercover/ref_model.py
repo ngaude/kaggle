@@ -92,7 +92,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage3 : Categorie3|Categorie1
 #######################
 
-dftrain = pd.read_csv(ddir+'training_perfect.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_perfect_200.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
@@ -154,8 +154,7 @@ def log_proba(df,vec,cla):
     lp = cla.predict_log_proba(X)
     return (cla.classes_,lp)
 
-#dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('').reset_index()
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('').reset_index()
+dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('').reset_index()
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
 add_txt(dfvalid)
