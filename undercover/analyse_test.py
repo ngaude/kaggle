@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from utils import ddir,header
+from utils import ddir,header,add_txt,normalize_guess
 import numpy as np
 import pandas as pd
 from os.path import basename
@@ -87,4 +87,121 @@ plt.plot(ccr,label = 'resultat')
 plt.plot(ccv,label = 'validation')
 plt.legend()
 plt.show()
+
+
+############################################
+# compare with categorie distribution
+############################################
+
+allowed_guess = [
+'canne peche',
+'porte casque',
+'poubelle bord',
+'porte kayak',
+'bac litiere',
+'pack accessoires',
+'set sacs voyage',
+'set valises',
+'recepteur infrarouge',
+'simulateur conduite',
+'beurre cacahuete',
+'machine pop corn',
+'lits superposes',
+'pate tartiner',
+'pate modeler',
+'centre repassage',
+'machine expresso',
+'boisson recuperation',
+'combine cafetiere expresso',
+'station accueil',
+'table mixage',
+'pad entrainement',
+'boite rangement',
+'enfile aiguille',
+'huile transmission',
+'machine fumee',
+'meuble range',
+'tiroir bureau',
+'arceau securite poussette',
+'pack logiciel',
+'carte externe',
+'disque dur externe',
+'papier dessin',
+'umd',
+'dvd',
+'blu-ray',
+'serviette table',
+'cadre photo',
+'coussin chauffant',
+'physique chimie',
+'histoire geographie',
+'pack clavier souris',
+'telecommande domotique',
+'enfile aiguille',
+'nettoyant vitres',
+'film protection']
+
+# 
+# def all_guess(r):
+#     rdf = rayon[rayon.Categorie1 == r.Categorie1]
+#     filt = [one_guess(r.txt,name) for name in rdf.Categorie3_Name.values]
+#     guess = rdf.Categorie3[filt].values
+#     guess_name = rdf.Categorie3_Name[filt].values
+#     if len(guess)==1 and len(guess_name[0].split())>1 and guess_name[0] not in forbidden_guess:
+#         return guess[0]
+#     return r.Categorie3
+# 
+# def one_guess(txt,name):
+#     name = name.split()
+#     if len(name)==0:
+#         return False
+#     for w in name:
+#         if ' '+w+' ' not in txt:
+#             return False
+#     return True
+
+def all_guess(r):
+    rdf = rayon[rayon.Categorie1 == r.Categorie1]
+    filt = [one_guess(r.txt,name) for name in rdf.Categorie3_Name.values]
+    guess = rdf.Categorie3[filt].values
+    if len(guess)==1: 
+        return guess[0]
+    return r.Categorie3
+
+def one_guess(txt,name):
+    if name not in allowed_guess:
+        return False
+    if name in txt:
+        return True
+    return False
+
+# join rayon.csv & test.csv & resultat44.csv
+# keep id
+
+rayon = pd.read_csv(ddir+'rayon.csv',sep=';').fillna('ZZZ')
+rayon.Categorie3_Name = map(normalize_guess,rayon.Categorie3_Name.values)
+rayon.Categorie2_Name = map(normalize_guess,rayon.Categorie2_Name.values)
+rayon.Categorie1_Name = map(normalize_guess,rayon.Categorie1_Name.values)
+
+test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
+add_txt(test)
+test.txt = map(normalize_guess,test.txt)
+
+resultat = pd.read_csv(ddir+'resultat44.csv',sep=';')
+
+
+df = test.merge(resultat,'left',None,'Identifiant_Produit','Id_Produit')
+df = df.merge(rayon,'left',None,'Id_Categorie','Categorie3')
+
+df['guess'] = map(lambda (i,r):all_guess(r),df.iterrows())
+
+diff = df[df.Categorie3 != df.guess]
+diff = diff[['Identifiant_Produit','Description','Libelle','Marque','prix','Categorie3_Name','guess']]
+diff = diff.merge(rayon,'left',None,'guess','Categorie3')
+diff = diff[[u'guess',u'Categorie3_Name_x',u'Categorie3_Name_y',  u'Description', u'Libelle', u'Marque', u'prix']]
+diff.to_csv(ddir+'diff.csv',sep=';',index=False)
+
+guess = df[['Id_Produit','guess']]
+guess = guess.drop_duplicates()
+guess.to_csv(ddir+'guess.csv',sep=';',index=False)
 
