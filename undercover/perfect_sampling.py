@@ -224,7 +224,7 @@ for i in range(IDneighbor.shape[0]):
 
 dftrain['D'] = map(lambda i:ID2D[i],dftrain.Identifiant_Produit)
 
-dfsample = training_sample_perfect(dftrain,N=647,class_ratio=class_ratio)
+dfsample = training_sample_perfect(dftrain,N=999,class_ratio=class_ratio)
 
 dfsample.to_csv(ddir+'training_perfect.csv',sep=';',index=False,header=False)
 

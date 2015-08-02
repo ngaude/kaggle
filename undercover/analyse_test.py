@@ -60,7 +60,7 @@ plt.show()
 
 #df = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
 #df = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
-df = pd.read_csv(ddir+'resultat44.csv',sep=';').fillna('')
+df = pd.read_csv(ddir+'resultat50.csv',sep=';').fillna('')
 
 if 'Categorie3' in df.columns:
     label = 'Categorie3'
@@ -84,76 +84,51 @@ plt.legend()
 plt.show()
 
 
-############################################
-# compare with categorie distribution
-############################################
+#######################################################
+# use complex Categorie3_Name as a good naive predictor
+# when Categorie1 is known
+#######################################################
 
 allowed_guess = [
-'canne peche',
-'porte casque',
-'poubelle bord',
-'porte kayak',
-'bac litiere',
+'arceau securite poussette',
+'beurre cacahuete',
+'boite rangement',
+'blu ray',
+'carte externe',
+'centre repassage',
+'combine cafetiere expresso',
+'enfile aiguille',
+'film protection',
+'histoire geographie',
+'huile transmission',
+'lits superposes',
+'machine expresso',
+'machine fumee',
+'machine pop corn',
+'machine hot dog',
+'nettoyant vitres',
 'pack accessoires',
+'pack clavier souris',
+'pack logiciel',
+'pad entrainement',
+'papier dessin',
+'pate modeler',
+'pate tartiner',
+'physique chimie',
+'porte casque',
+'porte kayak',
+'poubelle bord',
+'recepteur infrarouge',
+'serviette table',
 'set sacs voyage',
 'set valises',
-'recepteur infrarouge',
 'simulateur conduite',
-'beurre cacahuete',
-'machine pop corn',
-'lits superposes',
-'pate tartiner',
-'pate modeler',
-'centre repassage',
-'machine expresso',
-'boisson recuperation',
-'combine cafetiere expresso',
 'station accueil',
 'table mixage',
-'pad entrainement',
-'boite rangement',
-'enfile aiguille',
-'huile transmission',
-'machine fumee',
-'meuble range',
-'tiroir bureau',
-'arceau securite poussette',
-'pack logiciel',
-'carte externe',
-'disque dur externe',
-'papier dessin',
-'umd',
-'dvd',
-'blu-ray',
-'serviette table',
-'cadre photo',
-'coussin chauffant',
-'physique chimie',
-'histoire geographie',
-'pack clavier souris',
 'telecommande domotique',
-'enfile aiguille',
-'nettoyant vitres',
-'film protection']
-
-# 
-# def all_guess(r):
-#     rdf = rayon[rayon.Categorie1 == r.Categorie1]
-#     filt = [one_guess(r.txt,name) for name in rdf.Categorie3_Name.values]
-#     guess = rdf.Categorie3[filt].values
-#     guess_name = rdf.Categorie3_Name[filt].values
-#     if len(guess)==1 and len(guess_name[0].split())>1 and guess_name[0] not in forbidden_guess:
-#         return guess[0]
-#     return r.Categorie3
-# 
-# def one_guess(txt,name):
-#     name = name.split()
-#     if len(name)==0:
-#         return False
-#     for w in name:
-#         if ' '+w+' ' not in txt:
-#             return False
-#     return True
+'tiroir bureau',
+'umd',
+]
 
 def all_guess(r):
     rdf = rayon[rayon.Categorie1 == r.Categorie1]
@@ -182,7 +157,7 @@ test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
 add_txt(test)
 test.txt = map(normalize_guess,test.txt)
 
-resultat = pd.read_csv(ddir+'resultat44.csv',sep=';')
+resultat = pd.read_csv(ddir+'resultat50.csv',sep=';')
 
 
 df = test.merge(resultat,'left',None,'Identifiant_Produit','Id_Produit')

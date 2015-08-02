@@ -102,7 +102,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage3 : Categorie3|Categorie1
 #######################
 
-dftrain = pd.read_csv(ddir+'training_perfect.csv',sep=';',names = header()+['D',],).fillna('')
+dftrain = pd.read_csv(ddir+'training_perfect_456.csv',sep=';',names = header()+['D',],).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
@@ -260,14 +260,6 @@ submit(dftest,predict_cat3_test)
 ##########################
 
 ##################################
-# NOTE : perfect training & validation on top's 647 NN
-# NOTE : C=5,C=5,max_features=234567
-##################################
-# in progress ....
-# (resultat50.csv) ....
-##################################
-
-##################################
 # NOTE : perfect training & validation on top's 456 NN
 # NOTE : C=5,C=5,max_features=234567
 ##################################
@@ -279,6 +271,65 @@ submit(dftest,predict_cat3_test)
 # stage3 validation score : 0.849927849928
 # validation score : 0.874329215026 0.687476600524
 # (resultat44.csv) test score : 66,39161% (NOTE TOP TOP TOP)
+##################################
+
+#################################
+# NOTE : perfect training & validation on top's 999 NN
+# NOTE : C=1,C=1,max_features=234567
+##################################
+# stage1 elapsed time : 6505.07811284
+# stage1 training score : 0.9676
+# stage1 validation score : 0.874890802446
+# stage3 elapsed time : 7462.23560381
+# stage3 training score : 0.9789
+# stage3 validation score : 0.846625766871
+# validation score : 0.874890802446 0.687663796331
+# (resultat54.csv) test score : 65,33723% 
+##################################
+
+
+#################################
+# NOTE : perfect training & validation on top's 999 NN
+# NOTE : C=3,C=10,max_features=234567
+##################################
+# stage1 elapsed time : 8254.04167891
+# stage1 training score : 0.9791
+# stage1 validation score : 0.882378634719
+# stage3 elapsed time : 8937.78230596
+# stage3 training score : 0.9956
+# stage3 validation score : 0.874233128834
+# validation score : 0.882378634719 0.721951828279
+# (resultat53.csv) test score : 66,19678% 
+##################################
+
+
+##################################
+# NOTE : perfect training & validation on top's 321 NN
+# NOTE : C=5,C=5,max_features=234567
+##################################
+# stage1 elapsed time : 2489.7963171
+# stage1 training score : 0.9757
+# stage1 validation score : 0.866279795333
+# stage3 elapsed time : 2401.14529419
+# stage3 training score : 0.98695
+# stage3 validation score : 0.833333333333
+# validation score : 0.866279795333 0.670816173718
+# (resultat52.csv) test score : 65,65813%
+##################################
+
+
+##################################
+# NOTE : perfect training & validation on top's 647 NN
+# NOTE : C=5,C=5,max_features=234567
+##################################
+# stage1 elapsed time : 5432.35693598
+# stage1 training score : 0.9804
+# stage1 validation score : 0.878603519281
+# stage3 elapsed time : 5207.0978241
+# stage3 training score : 0.99165
+# stage3 validation score : 0.855120732723
+# validation score : 0.878603519281 0.702545862973
+# (resultat50.csv) test score : 66,09363 %
 ##################################
 
 ##################################
