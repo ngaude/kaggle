@@ -259,3 +259,19 @@ def add_txt(df):
     assert 'Description' in df.columns
     df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
     return
+
+def result_diffing(fx,fy):
+    dfx = pd.read_csv(fx,sep=';').fillna('')
+    dfy = pd.read_csv(fy,sep=';').fillna('')
+    test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
+    rayon = pd.read_csv(ddir+'rayon.csv',sep=';').fillna('')
+    dfx = dfx.merge(rayon,'left',None,'Id_Categorie','Categorie3')
+    dfy = dfy.merge(rayon,'left',None,'Id_Categorie','Categorie3')
+    dfx = dfx.merge(test,'left',None,'Id_Produit','Identifiant_Produit')
+    df = dfx.merge(dfy,'inner','Id_Produit')
+    df = df[df.Categorie3_x != df.Categorie3_y]
+    df = df[['Id_Produit','Categorie3_Name_x','Categorie3_Name_y','Marque','Libelle','Description','prix']]
+    df.to_csv(ddir+'diff.csv',sep=';',index=False)
+    return df
+
+

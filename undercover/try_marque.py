@@ -3,8 +3,10 @@
 
 import numpy as np
 import pandas as pd
-from utils import wdir,ddir,header,normalize_txt,add_txt
+from utils import wdir,ddir,header,normalize_txt,add_txt,result_diffing
 from sklearn.externals import joblib
+import matplotlib.pyplot as plt
+
 
 from utils import itocat1,itocat2,itocat3
 from utils import cat1toi,cat2toi,cat3toi
@@ -31,6 +33,44 @@ joblib.dump((ez_cat1,ez_cat2,ez_cat3), ddir+'/joblib/ez_cat')
 
 (stage1_log_proba_valid,stage2_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/backup/log_proba_valid')
 (stage1_log_proba_test,stage2_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/backup/log_proba_test')
+
+
+for i in range(stage2_log_proba_valid.shape[1]):
+    cat2 = itocat2[i]
+    cat1 = cat2tocat1[cat2]
+    j = cat1toi[cat1]
+    stage2_log_proba_valid[:,i] += stage1_log_proba_valid[:,j]
+    stage2_log_proba_test[:,i] += stage1_log_proba_test[:,j]
+
+for i in range(stage3_log_proba_valid.shape[1]):
+    cat3 = itocat3[i]
+    cat2 = cat3tocat2[cat3]
+    j = cat2toi[cat2]
+    stage3_log_proba_valid[:,i] += stage2_log_proba_valid[:,j]
+    stage3_log_proba_test[:,i] += stage2_log_proba_test[:,j]
+
+
+
+######################
+# find weak learners
+######################
+
+confidence = [sorted(a,reverse=True)[0]-sorted(a,reverse=True)[1] for a in stage1_log_proba_valid]
+score = [-sorted(a,reverse=True)[0] for a in stage1_log_proba_valid]
+
+accuracy = np.array(confidence)*np.array(score)
+np.accuracy>0.3
+
+#plt.hist(confidence,normed=True,bins=300,alpha=0.5,label='confidence')
+#plt.hist(score,normed=True,bins=300,alpha=0.5,label='score')
+plt.hist(accuracy,normed=True,bins=300,alpha=0.5,label='accuracy')
+plt.legend()
+plt.show()
+
+
+######################
+# below is all rubbish
+######################
 
 (ez_cat1,ez_cat2,ez_cat3) = joblib.load(ddir+'/joblib/ez_cat')
 
@@ -65,38 +105,7 @@ diff = diff.merge(rayon,'left',None,'Id_Categorie','Categorie3')
 diff = diff[[u'Categorie3_Name',u'Description', u'Libelle', u'Marque', u'prix']]
 diff.to_csv(ddir+'diff.csv',sep=';',index=False)
 
-
-def result_diffing(fx,fy):
-    dfx = pd.read_csv(fx,sep=';').fillna('')
-    dfy = pd.read_csv(fy,sep=';').fillna('')
-    test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
-    rayon = pd.read_csv(ddir+'rayon.csv',sep=';').fillna('')
-    dfx = dfx.merge(rayon,'left',None,'Id_Categorie','Categorie3')
-    dfy = dfy.merge(rayon,'left',None,'Id_Categorie','Categorie3')
-    dfx = dfx.merge(test,'left',None,'Id_Produit','Identifiant_Produit')
-    df = dfx.merge(dfy,'inner','Id_Produit')
-    #df = df[df.Categorie3_x != df.Categorie3_y]
-    #df = df[['Id_Produit','Categorie3_Name_x','Categorie3_Name_y','Marque','Libelle','Description','prix']]
-    df = df[df.Categorie1_x != df.Categorie1_y]
-    df = df[['Id_Produit','Categorie1_Name_x','Categorie1_Name_y','Marque','Libelle','Description','prix']]
-    df.to_csv(ddir+'diff.csv',sep=';',index=False)
-    return df
-
 fx = ddir+'resultat43.csv'
 fy = ddir+'ez_cat.csv'
 
 a = result_diffing(fx,fy)
-
-
-    df = [[]]
-    return 
-
-
-    .reto_csv(ddir+'ez_cat.csv',sep=';',index=False)
-    dfy.t
-
-
-
-
-
-
