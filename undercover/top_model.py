@@ -24,21 +24,7 @@ from os.path import isfile
 from joblib import Parallel, delayed
 import time
 
-def stage1_vectorizer(txt):
-    vec = TfidfVectorizer(
-        min_df = 2,
-        stop_words = None,
-        max_features=345678,
-        smooth_idf=True,
-        norm='l2',
-        sublinear_tf=True,
-        use_idf=True,
-        ngram_range=(1,2))
-    X = vec.fit_transform(txt)
-    return (vec,X)
-
-
-def stage3_vectorizer(txt):
+def vectorizer(txt):
     vec = TfidfVectorizer(
         min_df = 2,
         stop_words = None,
@@ -47,9 +33,15 @@ def stage3_vectorizer(txt):
         norm='l2',
         sublinear_tf=True,
         use_idf=True,
-        ngram_range=(1,3))
+        ngram_range=(1,2))
     X = vec.fit_transform(txt)
     return (vec,X)
+
+def create_sample(df,label,mincount,maxsampling):
+    fname = ddir+'training_sampled_'+label+'.csv'
+    dfsample = training_sample(df,label,mincount,maxsampling)
+    dfsample.to_csv(fname,sep=';',index=False,header=False)
+    return dfsample
 
 def training_stage1(dftrain,dfvalid):
     fname = ddir + 'joblib/stage1'
@@ -57,9 +49,9 @@ def training_stage1(dftrain,dfvalid):
     print 'training',basename(fname)
     df = dftrain
     dfv = dfvalid
-    vec,X = stage1_vectorizer(df.txt)
+    vec,X = vectorizer(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=7)
+    cla = LogisticRegression(C=5)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -82,9 +74,9 @@ def training_stage3(dftrain,dfvalid,cat,i):
         print 'training',cat,'\t\t(',i,') : N=',len(df),'K=',len(labels)
         print 'training',cat,'\t\t(',i,') : training=',sct,'validation=',scv
         return (sct,scv)
-    vec,X = stage3_vectorizer(df.txt)
+    vec,X = vectorizer(df.txt)
     Y = df['Categorie3'].values
-    cla = LogisticRegression(C=15)
+    cla = LogisticRegression(C=5)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie3)
     sct = cla.score(X[:min(10000,len(df))],Y[:min(10000,len(df))])
@@ -139,7 +131,6 @@ print '# stage1 elapsed time :',dt
 print '# stage1 training score :',sct
 print '# stage1 validation score :',scv
 print '##################################'
-
 
 # training parralel stage3
 cat1 = np.unique(dftrain.Categorie1)
@@ -275,34 +266,6 @@ submit(dftest,predict_cat3_test)
 
 ##################################
 # NOTE : perfect training & validation on top's 456 NN
-# NOTE : C=7,max_features=345678 ngram=(1,2)
-# NOTE : C=15,max_features=234567 ngram=(1,3)
-# stage1 elapsed time : 3943.4581399
-# stage1 training score : 0.9861
-# stage1 validation score : 0.879789092724
-# stage3 elapsed time : 5396.37603402
-# stage3 training score : 0.99765
-# stage3 validation score : 0.862068965517
-# validation score : 0.879789092724 0.696399600649
-# (resultat57.csv) test score : 65,85869%
-##################################
-
-##################################
-# NOTE : perfect training & validation on top's 456 NN
-# NOTE : C=5,max_features=345678 ngram=(1,2)
-# NOTE : C=1,max_features=234567 ngram=(1,3)
-# stage1 elapsed time : 3674.38636899
-# stage1 training score : 0.9829
-# stage1 validation score : 0.878884312991
-# stage3 elapsed time : 3896.88222098
-# stage3 training score : 0.9697
-# stage3 validation score : 0.83226758485
-# validation score : 0.878884312991 0.665886684138
-# (resultat55.csv) test score : 65,06217%
-##################################
-
-##################################
-# NOTE : perfect training & validation on top's 456 NN
 # NOTE : C=5,C=5,max_features=234567
 ##################################
 # stage1 elapsed time : 3598.16943312
@@ -313,5 +276,120 @@ submit(dftest,predict_cat3_test)
 # stage3 validation score : 0.849927849928
 # validation score : 0.874329215026 0.687476600524
 # (resultat44.csv) test score : 66,39161% (NOTE TOP TOP TOP)
+##################################
+
+#################################
+# NOTE : perfect training & validation on top's 999 NN
+# NOTE : C=1,C=1,max_features=234567
+##################################
+# stage1 elapsed time : 6505.07811284
+# stage1 training score : 0.9676
+# stage1 validation score : 0.874890802446
+# stage3 elapsed time : 7462.23560381
+# stage3 training score : 0.9789
+# stage3 validation score : 0.846625766871
+# validation score : 0.874890802446 0.687663796331
+# (resultat54.csv) test score : 65,33723% 
+##################################
+
+
+#################################
+# NOTE : perfect training & validation on top's 999 NN
+# NOTE : C=3,C=10,max_features=234567
+##################################
+# stage1 elapsed time : 8254.04167891
+# stage1 training score : 0.9791
+# stage1 validation score : 0.882378634719
+# stage3 elapsed time : 8937.78230596
+# stage3 training score : 0.9956
+# stage3 validation score : 0.874233128834
+# validation score : 0.882378634719 0.721951828279
+# (resultat53.csv) test score : 66,19678% 
+##################################
+
+
+##################################
+# NOTE : perfect training & validation on top's 321 NN
+# NOTE : C=5,C=5,max_features=234567
+##################################
+# stage1 elapsed time : 2489.7963171
+# stage1 training score : 0.9757
+# stage1 validation score : 0.866279795333
+# stage3 elapsed time : 2401.14529419
+# stage3 training score : 0.98695
+# stage3 validation score : 0.833333333333
+# validation score : 0.866279795333 0.670816173718
+# (resultat52.csv) test score : 65,65813%
+##################################
+
+
+##################################
+# NOTE : perfect training & validation on top's 647 NN
+# NOTE : C=5,C=5,max_features=234567
+##################################
+# stage1 elapsed time : 5432.35693598
+# stage1 training score : 0.9804
+# stage1 validation score : 0.878603519281
+# stage3 elapsed time : 5207.0978241
+# stage3 training score : 0.99165
+# stage3 validation score : 0.855120732723
+# validation score : 0.878603519281 0.702545862973
+# (resultat50.csv) test score : 66,09363 %
+##################################
+
+##################################
+# NOTE : perfect training & validation on top's 456 NN
+# NOTE : C=3,C=3,max_features=234567
+##################################
+# stage1 elapsed time : 3175.98400712
+# stage1 training score : 0.976
+# stage1 validation score : 0.871614875827
+# stage3 elapsed time : 3369.5460999
+# stage3 training score : 0.984
+# stage3 validation score : 0.843361986628
+# validation score : 0.871614875827 0.680643953575
+# (resultat45.csv) test score : 66,32858%
+##################################
+
+##################################
+# NOTE : perfect training & validation on top's 456 NN
+# NOTE : C=11,C=11,max_features=234567
+##################################
+# stage1 elapsed time : 4176.42304993
+# stage1 training score : 0.9864
+# stage1 validation score : 0.875920379384
+# stage3 elapsed time : 3805.47599411
+# stage3 training score : 0.9959
+# stage3 validation score : 0.854256854257
+# validation score : 0.875920379384 0.694122051666
+# (resultat46.csv) test score : 66,23116%.
+##################################
+
+##################################
+# NOTE : perfect training & validation on top's 456 NN
+# NOTE : C=8,C=8,max_features=234567
+##################################
+# stage1 elapsed time : 3918.26019287
+# stage1 training score : 0.9846
+# stage1 validation score : 0.875857980781
+# stage3 elapsed time : 3714.93741202
+# stage3 training score : 0.99375
+# stage3 validation score : 0.853535353535
+# validation score : 0.875857980781 0.692250093598
+# (resultat47.csv) test score : 66,32285%
+##################################
+
+##################################
+# NOTE : perfect training & validation on top's 456 NN
+# NOTE : C=20,C=5,max_features=234567
+##################################
+# stage1 elapsed time : 4794.11950397
+# stage1 training score : 0.9898
+# stage1 validation score : 0.876731561213
+# stage3 elapsed time : 3549.80708003
+# stage3 training score : 0.9893
+# stage3 validation score : 0.849927849928
+# validation score : 0.876731561213 0.691189317359
+# (resultat48.csv) test score : 66,10509%
 ##################################
 

@@ -182,8 +182,6 @@ class MarisaTfidfVectorizer(TfidfVectorizer):
 
 
 def training_sample(dftrain,label,mincount = 200,maxsampling = 10):
-    mincount = int(mincount)
-    maxsmample = int(maxsampling)
     cl = dftrain[label]
     cc = cl.groupby(cl)
     s = (cc.count() > mincount/maxsampling)
