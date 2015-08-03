@@ -63,6 +63,29 @@ def header(test=False):
         columns = ['Identifiant_Produit','Categorie1','Categorie2','Categorie3','Description','Libelle','Marque','Produit_Cdiscount','prix']
     return columns
 
+def normalize_guess(txt):
+    ####################################
+    # use for brute force wild guessing
+    # NOTE : no stemming for wild guess
+    ####################################
+    # remove html stuff
+    txt = BeautifulSoup(txt,from_encoding='utf-8').get_text()
+    # lower case
+    txt = txt.lower()
+    # special escaping character '...'
+    txt = txt.replace(u'\u2026','.')
+    txt = txt.replace(u'\u00a0',' ')
+    # remove accent btw
+    txt = unicodedata.normalize('NFD', txt).encode('ascii', 'ignore')
+    #txt = unidecode(txt)
+    # remove non alphanumeric char
+    txt = re.sub('[^a-z_]', ' ', txt)
+    # remove french stop words
+    tokens = [w for w in txt.split() if (len(w)>2) and (w not in stopwords)]
+    # french stemming
+    return ' '.join(tokens)
+
+
 def normalize_txt(txt):
     # remove html stuff
     txt = BeautifulSoup(txt,from_encoding='utf-8').get_text()
@@ -235,3 +258,4 @@ def add_txt(df):
     assert 'Libelle' in df.columns
     assert 'Description' in df.columns
     df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+    return

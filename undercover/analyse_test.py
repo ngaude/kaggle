@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from utils import ddir,header
+from utils import ddir,header,add_txt,normalize_guess
 import numpy as np
 import pandas as pd
 from os.path import basename
@@ -20,13 +20,12 @@ import matplotlib.pyplot as plt
 ############################################
 
 dfs = []
-dfs.append(pd.read_csv(ddir+'resultat29.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat31.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat33.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat35.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat36.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat37.csv',sep=';'))
-dfs.append(pd.read_csv(ddir+'resultat38.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat44.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat45.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat46.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat47.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat48.csv',sep=';'))
+dfs.append(pd.read_csv(ddir+'resultat49.csv',sep=';'))
 
 df = pd.concat(dfs)
 
@@ -56,14 +55,24 @@ plt.show()
 
 
 ############################################
-# validation categorie distribution
+# compare with categorie distribution
 ############################################
 
-#dfvalid = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
-dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
+#df = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
+#df = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
+df = pd.read_csv(ddir+'resultat50.csv',sep=';').fillna('')
+
+if 'Categorie3' in df.columns:
+    label = 'Categorie3'
+    target = 'Identifiant_Produit'
+
+if 'Id_Categorie' in df.columns:
+    label = 'Id_Categorie'
+    target = 'Id_Produit'
 
 
-ccv = dfvalid.groupby('Categorie3').Identifiant_Produit.count()
+
+ccv = df.groupby(label)[target].count()
 ccv.sort(ascending=False)
 ccv = [ccv.get(cat,0) for cat in ccr.index]
 eps = 0.000001
@@ -73,4 +82,96 @@ plt.plot(ccr,label = 'resultat')
 plt.plot(ccv,label = 'validation')
 plt.legend()
 plt.show()
+
+
+#######################################################
+# use complex Categorie3_Name as a good naive predictor
+# when Categorie1 is known
+#######################################################
+
+allowed_guess = [
+'arceau securite poussette',
+'beurre cacahuete',
+'boite rangement',
+'blu ray',
+'carte externe',
+'centre repassage',
+'combine cafetiere expresso',
+'enfile aiguille',
+'film protection',
+'histoire geographie',
+'huile transmission',
+'lits superposes',
+'machine expresso',
+'machine fumee',
+'machine pop corn',
+'machine hot dog',
+'nettoyant vitres',
+'pack accessoires',
+'pack clavier souris',
+'pack logiciel',
+'pad entrainement',
+'papier dessin',
+'pate modeler',
+'pate tartiner',
+'physique chimie',
+'porte casque',
+'porte kayak',
+'poubelle bord',
+'recepteur infrarouge',
+'serviette table',
+'set sacs voyage',
+'set valises',
+'simulateur conduite',
+'station accueil',
+'table mixage',
+'telecommande domotique',
+'tiroir bureau',
+'umd',
+]
+
+def all_guess(r):
+    rdf = rayon[rayon.Categorie1 == r.Categorie1]
+    filt = [one_guess(r.txt,name) for name in rdf.Categorie3_Name.values]
+    guess = rdf.Categorie3[filt].values
+    if len(guess)==1: 
+        return guess[0]
+    return r.Categorie3
+
+def one_guess(txt,name):
+    if name not in allowed_guess:
+        return False
+    if name in txt:
+        return True
+    return False
+
+# join rayon.csv & test.csv & resultat44.csv
+# keep id
+
+rayon = pd.read_csv(ddir+'rayon.csv',sep=';').fillna('ZZZ')
+rayon.Categorie3_Name = map(normalize_guess,rayon.Categorie3_Name.values)
+rayon.Categorie2_Name = map(normalize_guess,rayon.Categorie2_Name.values)
+rayon.Categorie1_Name = map(normalize_guess,rayon.Categorie1_Name.values)
+
+test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
+add_txt(test)
+test.txt = map(normalize_guess,test.txt)
+
+resultat = pd.read_csv(ddir+'resultat50.csv',sep=';')
+
+
+df = test.merge(resultat,'left',None,'Identifiant_Produit','Id_Produit')
+df = df.merge(rayon,'left',None,'Id_Categorie','Categorie3')
+
+df['guess'] = map(lambda (i,r):all_guess(r),df.iterrows())
+
+diff = df[df.Categorie3 != df.guess]
+diff = diff[['Identifiant_Produit','Description','Libelle','Marque','prix','Categorie3_Name','guess']]
+diff = diff.merge(rayon,'left',None,'guess','Categorie3')
+diff = diff[[u'guess',u'Categorie3_Name_x',u'Categorie3_Name_y',  u'Description', u'Libelle', u'Marque', u'prix']]
+diff.to_csv(ddir+'diff.csv',sep=';',index=False)
+
+guess = df[['Id_Produit','guess']]
+guess = guess.drop_duplicates()
+guess.to_csv(ddir+'guess.csv',sep=';',index=False)
 

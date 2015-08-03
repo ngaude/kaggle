@@ -64,51 +64,44 @@ def training_stage1(dftrain,dfvalid):
 
 def training_stage3(dftrain,dfvalid,cat,i):
     fname = ddir + 'joblib/stage3_'+str(cat)
-    print '-'*50
-    print 'training',basename(fname),':',cat,'(',i,')'
     df = dftrain[dftrain.Categorie1 == cat].reset_index(drop=True)
     dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index(drop=True)
     labels = np.unique(df.Categorie3)
     if len(labels)==1:
-        print fname,'predict 100% ',labels[0]
         joblib.dump((labels,None,None),fname)
         scv = -1
         sct = -1
+        print 'training',cat,'\t\t(',i,') : N=',len(df),'K=',len(labels)
+        print 'training',cat,'\t\t(',i,') : training=',sct,'validation=',scv
         return (sct,scv)
-    print 'samples=',len(df)
     vec,X = vectorizer(df.txt)
     Y = df['Categorie3'].values
-    dt = -time.time()
     cla = LogisticRegression(C=5)
     cla.fit(X,Y)
-    dt += time.time()
-    print 'training time',cat,':',dt
     labels = np.unique(df.Categorie3)
-    Xv = vec.transform(dfv.txt)
-    Yv = dfv['Categorie3'].values
     sct = cla.score(X[:min(10000,len(df))],Y[:min(10000,len(df))])
     if len(dfv)==0:
         scv = -1
     else:
+        Xv = vec.transform(dfv.txt)
+        Yv = dfv['Categorie3'].values
         scv = cla.score(Xv,Yv)
-    print '**********************************'
-    print 'Stage 3',cat,'training score',sct
-    print 'Stage 3',cat,'validation score',scv
-    print '**********************************'
+    print 'training',cat,'\t\t(',i,') : N=',len(df),'K=',len(labels)
+    print 'training',cat,'\t\t(',i,') : training=',sct,'validation=',scv
     joblib.dump((labels,vec,cla),fname)
     del vec,cla
     return (sct,scv)
+
 
 #####################
 # create sample set 
 # from training set
 #####################
 
-# NOTE : reference model is limited to ~1M rows balanced train set with ~4500 unique Categorie3 labels
-#
-# dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
-# create_sample(dftrain,'Categorie3',200,10)     #~1M rows
-# del dftrain
+# NOTE : USE analyse_test.py and perfect_sampling.py to get perfect training & validation set
+# NOTE : USE analyse_test.py and perfect_sampling.py to get perfect training & validation set
+# NOTE : USE analyse_test.py and perfect_sampling.py to get perfect training & validation set
+# NOTE : USE analyse_test.py and perfect_sampling.py to get perfect training & validation set
 
 #######################
 # training
@@ -116,7 +109,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage3 : Categorie3|Categorie1
 #######################
 
-dftrain = pd.read_csv(ddir+'training_sampled_Categorie3_200.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_perfect_200.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
@@ -134,12 +127,11 @@ dt = -time.time()
 sct,scv = training_stage1(dftrain,dfvalid)
 dt += time.time()
 
-print '**********************************'
-print 'stage1 elapsed time :',dt
-print 'stage1 training score :',sct
-print 'stage1 validation score :',scv
-print '**********************************'
-
+print '##################################'
+print '# stage1 elapsed time :',dt
+print '# stage1 training score :',sct
+print '# stage1 validation score :',scv
+print '##################################'
 
 # training parralel stage3
 cat1 = np.unique(dftrain.Categorie1)
@@ -158,11 +150,11 @@ dt += time.time()
 sct = np.median([s for s in zip(*scs)[0] if s>=0])
 scv = np.median([s for s in zip(*scs)[1] if s>=0])
 
-print '**********************************'
-print 'stage3 elapsed time :',dt
-print 'stage3 training score :',sct
-print 'stage3 validation score :',scv
-print '**********************************'
+print '##################################'
+print '# stage3 elapsed time :',dt
+print '# stage3 training score :',sct
+print '# stage3 validation score :',scv
+print '##################################'
 
 #######################
 # predicting
@@ -272,42 +264,19 @@ submit(dftest,predict_cat3_test)
 ##########################
 # reference model score  #
 ##########################
-# NOTE
-# NOTE
-# NOTE
-# NOTE
-#################################################
-# stage1 elapsed time : 966.20471406
-# stage1 training score : 0.9633
-# stage1 validation score : 0.874375015096
-# stage3 elapsed time : ~1500
-# stage3 training score : 0.984027777778
-# stage3 validation score : 0.863612147043
-# validation score : 0.874375015096 0.68585299872
-# (result30.csv) test score : 63,99060%
-#################################################
 #
-#################################################
-# stage1 elapsed time : 448.81675601
-# stage1 training score : 0.9569
-# stage1 validation score : 0.874882249221
-# stage3 elapsed time : 765.464223146
-# stage3 training score : 0.9839
-# stage3 validation score : 0.857221006565
-# validation score : 0.874882249221 0.684452066375
-# (result31.csv) test score : 64,01352%
-#################################################
-#
-#################################################
-# TEST WITH NEW validation_perfect.csv file ....
+################################################
+# NOTE : training_perfect_200.csv file
+################################################
 # stage1 elapsed time : 1182.08965111
 # stage1 training score : 0.9633
 # stage1 validation score : 0.860583523033
-# stage3 elapsed time : 1195.13887191
-# stage3 training score : 0.984027777778
-# stage3 validation score : 0.835164835165
-# validation score : 0.860583523033 0.69124367908
-#################################################
-
+# stage3 elapsed time : 1157.06438398
+# stage3 training score : 0.987830964724
+# stage3 validation score : 0.825870646766
+# validation score : 0.861331851888 0.630661095143 (validation_normed)
+# validation score : 0.86082680244 0.665195405495 (validation_perfect)
+# (resultat43.csv) test score : 64,50633% (REF)
+##################################
 
 

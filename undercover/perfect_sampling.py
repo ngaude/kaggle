@@ -15,19 +15,11 @@ from sklearn.externals import joblib
 from joblib import Parallel, delayed
 
 
-from utils import wdir,ddir,header
+from utils import wdir,ddir,header,add_txt
 from utils import itocat1,itocat2,itocat3
 from utils import cat1toi,cat2toi,cat3toi
 from utils import cat3tocat2,cat3tocat1,cat2tocat1
 from utils import cat1count,cat2count,cat3count
-
-def add_txt(df):
-    assert 'Marque' in df.columns
-    assert 'Libelle' in df.columns
-    assert 'Description' in df.columns
-    assert 'prix' in df.columns
-    df['txt'] = ('px'+(df.prix).astype(int).astype(str)+' ')+(df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
-    return
 
 def vectorizer(txt):
     vec = TfidfVectorizer(
@@ -41,6 +33,33 @@ def vectorizer(txt):
         ngram_range=(1,2))
     X = vec.fit_transform(txt)
     return (vec,X)
+
+def training_sample_perfect(dftrain,N = 200,class_ratio = dict()):
+    assert 'D' in dftrain.columns
+    cl = dftrain.Categorie3
+    cc = cl.groupby(cl)
+    s = (cc.count() >= 3)
+    labelmaj = s[s].index
+    print 'sampling ~',N,'samples for any of',len(labelmaj),'classes'
+    dfs = []
+    for i,cat in enumerate(labelmaj):
+        if i%10==0:
+            print i,'/',len(labelmaj),':'
+        df = dftrain[dftrain.Categorie3 == cat]
+        df = df.sort('D',ascending=True)
+        sample_count = int(np.round(N*class_ratio.get(cat,1)))
+        if len(df)>=sample_count:
+            # undersample sample_count samples : take the closest first
+            dfs.append(df[:sample_count])
+        else:
+            # sample all samples + oversample the remaining
+            dfs.append(df)
+            df = df.iloc[np.random.randint(0, len(df), size=sample_count-len(df))]
+            dfs.append(df)
+    dfsample = pd.concat(dfs)
+    dfsample = dfsample.reset_index(drop=True)
+    dfsample = dfsample.reindex(np.random.permutation(dfsample.index),copy=False)
+    return dfsample
 
 ##################
 # VECTORIZING
@@ -99,34 +118,45 @@ joblib.dump((vec,IDtrain,Xtrain,Ytrain),ddir+'joblib/vecIDXYtrain')
 test_count = Xtest.shape[0]
 train_count = Xtrain.shape[0]
 
-import gc
+import gc,sys
 sum([sys.getsizeof(i) for i in gc.get_objects()])
 
-def neighbor_select(test_id,dist,indx):
-    if len(neighbors[test_id])>400:
-        neighbors[test_id].sort()
-        prev =  neighbors[test_id]
-        neighbors[test_id] = list(neighbors[test_id][:neighbor_size])
+def neighbor_select(ngh,test_id,dist,indx,nsize):
+    if len(ngh[test_id])>nsize*2:
+        ngh[test_id].sort()
+        prev =  ngh[test_id]
+        ngh[test_id] = list(ngh[test_id][:nsize])
         del prev
-    neighbors[test_id]+= zip(dist,indx)
+    ngh[test_id]+= zip(dist,indx)
 
-def neighbor_distance(k):
-    return np.median([ zip(*tup[:k])[0] if tup else [1]*k for tup in neighbors])
+def neighbor_median(ngh,k):
+    return np.median([ zip(*tup[:k])[0] if tup else [1]*k for tup in ngh])
 
-neighbors = [[] for i in range(test_count)]
-batch_size = 10000
-k = 5
-neighbor_size = 200
-start_time = time.time()
-for i in range(0,train_count,batch_size):
-    if (i/batch_size)%1==0:
-        print 'neighbor:',i,'/',train_count,'median distance=',neighbor_distance(k),'time=',int(time.time() - start_time),'s'
-    Xb = Xtrain[i:i+min(batch_size,train_count-i)]
-    knn = NearestNeighbors(n_neighbors=k, algorithm='brute',metric='cosine').fit(Xb)
-    dist,indx = knn.kneighbors(Xtest)
-    for j in range(0,test_count):
-        neighbor_select(j,dist[j,:],indx[j,:]+i)
-    del Xb,knn
+def neighbor_distance(X,Xtest,offset=0,neighbor_size=200):
+    n = X.shape[0]
+    lneighbors = [[] for i in range(Xtest.shape[0])]
+    batch_size = 10000
+    k = 30
+    start_time = time.time()
+    for i in range(0,n,batch_size):
+        if (i/batch_size)%1==0:
+            print 'neighbor:',offset+i,'/',n,'median distance=',neighbor_median(lneighbors,k),'time=',int(time.time() - start_time),'s'
+        Xb = X[i:i+min(batch_size,n-i)]
+        knn = NearestNeighbors(n_neighbors=k, algorithm='brute',metric='cosine').fit(Xb)
+        dist,indx = knn.kneighbors(Xtest)
+        for j in range(0,Xtest.shape[0]):
+            neighbor_select(lneighbors,j,dist[j,:],indx[j,:]+i+offset,neighbor_size)
+        del Xb,knn
+    return lneighbors
+
+neighbor_size = 1000
+
+# parallel neighboring distance computation :
+# FIXME : very strange that this did not improve speed !!!
+#step = 1000000
+#lneighbors = Parallel(n_jobs=2)(delayed(neighbor_distance)(Xtrain[i:min(train_count,i+1000000)],Xtest,i,neighbor_size) for i in range(0,train_count,1000000))
+
+neighbors = neighbor_distance(Xtrain,Xtest,offset=0,neighbor_size=1000)
 
 IDneighbor = np.zeros(shape=(test_count,neighbor_size),dtype = int)
 Dneighbor = np.zeros(shape=(test_count,neighbor_size),dtype = float)
@@ -153,7 +183,7 @@ valid_ids = []
 all_ids = []
 for i in range(IDneighbor.shape[0]):
     all_ids += list(IDneighbor[i,:])
-    valid_ids += random.sample(IDneighbor[i,1:11],2)
+    valid_ids += random.sample(IDneighbor[i,5:20],1)
 
 all_ids = set(all_ids)
 valid_ids = set(valid_ids)
@@ -172,15 +202,12 @@ class_ratio = joblib.load(ddir+'joblib/class_ratio')
 
 dftrain = pd.read_csv(ddir+'training_shuffled_normed.csv',sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
-valid_ids = dfvalid.Identifiant_Produit.values
-
-# then sample from training set according to the class_ratio ratio
-# preferably from the closest neighbors
 
 #flatten IDneighbor to get the set of all_ids that are close from test set
 all_ids = []
 for i in range(IDneighbor.shape[0]):
     all_ids += list(IDneighbor[i,:])
+
 #remove valid_ids from all_ids
 valid_ids = set(dfvalid.Identifiant_Produit.values)
 all_ids = set(all_ids)
@@ -189,38 +216,36 @@ all_ids -= valid_ids
 all_rows = dftrain.Identifiant_Produit.isin(all_ids)
 dftrain = dftrain[all_rows]
 
-def training_sample_perfect(dftrain,N = 200,class_ratio = dict()):
-    cl = dftrain['Categorie3']
-    cc = cl.groupby(cl)
-    s = (cc.count() > 3)
-    labelmaj = s[s].index
-    print len(labelmaj),'classes with ~ ',N,' samples'
-    # TODO
-    # TODO
-    # TODO
-    # TODO
-    # TODO
-    # TODO
-    # TODO
-    dfs = []
-    for i,cat in enumerate(labelmaj):
-        if i%10==0:
-            print i,'/',len(labelmaj),':'
-        df = dftrain[dftrain[label] == cat]
-        mincount = N*class_ratio.get(cat,1)
-        if len(df)>=mincount:
-            # undersample mincount samples
-            rows = random.sample(df.index, mincount)
-            dfs.append(df.ix[rows])
-        else:
-            # sample all samples + oversample the remaining
-            dfs.append(df)
-            df = df.iloc[np.random.randint(0, len(df), size=mincount-len(df))]
-            dfs.append(df)
-    dfsample = pd.concat(dfs)
-    dfsample = dfsample.reset_index(drop=True)
-    dfsample = dfsample.reindex(np.random.permutation(dfsample.index),copy=False)
-    return dfsample
+#add for each selected training sample the min distance to test set
+ID2D = {}
+for i in range(IDneighbor.shape[0]):
+    for j in range(IDneighbor.shape[1]):
+        ID2D[IDneighbor[i,j]] = min(ID2D.get(IDneighbor[i,j],1),Dneighbor[i,j])
 
-dftrain[~valid_rows]
+dftrain['D'] = map(lambda i:ID2D[i],dftrain.Identifiant_Produit)
+
+dfsample = training_sample_perfect(dftrain,N=999,class_ratio=class_ratio)
+
+dfsample.to_csv(ddir+'training_perfect.csv',sep=';',index=False,header=False)
+
+####################
+# sanity check :
+####################
+
+sid = dfsample.Identifiant_Produit.values
+vid = dfvalid.Identifiant_Produit.values
+
+# no duplicate in validation set
+assert len(vid) == len(set(vid))
+
+# no intersection between training and validation set
+assert not set(sid).intersection(set(vid))
+
+# ensuring Categorie are not too deplated
+df = dfsample[['Identifiant_Produit','Categorie3']].drop_duplicates()
+cc = df.groupby('Categorie3').count().values
+print 'mean   =',np.mean(cc)
+print 'median =',np.percentile(cc,50)
+print '1/10   =',np.percentile(cc,10)
+print '9/10   =',np.percentile(cc,90)
 
