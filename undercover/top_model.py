@@ -97,10 +97,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # from training set
 #####################
 
-# NOTE : USE analyse_test.py and perfect_sampling.py to get perfect training & validation set
-# NOTE : USE analyse_test.py and perfect_sampling.py to get perfect training & validation set
-# NOTE : USE analyse_test.py and perfect_sampling.py to get perfect training & validation set
-# NOTE : USE analyse_test.py and perfect_sampling.py to get perfect training & validation set
+# NOTE : USE class_ratio to estimate class balance and random_sampling.py to get training sample set
 
 #######################
 # training
@@ -108,8 +105,15 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage3 : Categorie3|Categorie1
 #######################
 
-dftrain = pd.read_csv(ddir+'training_perfect_456.csv',sep=';',names = header()+['D',],).fillna('')
-dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('')
+
+if len(sys.argv)<2:
+    ensemble = ''
+else:
+    ensemble = '.'+sys.argv[1]
+
+
+dftrain = pd.read_csv(ddir+'training_random.csv'+ensemble,sep=';',names = header()).fillna('')
+dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
 add_txt(dftrain)
