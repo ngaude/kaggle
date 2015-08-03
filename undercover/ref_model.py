@@ -298,12 +298,16 @@ submit(dftest,predict_cat3_test)
 # (result31.csv) test score : 64,01352%
 #################################################
 #
-#
+#################################################
 # TEST WITH NEW validation_perfect.csv file ....
 # stage1 elapsed time : 1182.08965111
 # stage1 training score : 0.9633
 # stage1 validation score : 0.860583523033
-# in progress
+# stage3 elapsed time : 1195.13887191
+# stage3 training score : 0.984027777778
+# stage3 validation score : 0.835164835165
+# validation score : 0.860583523033 0.69124367908
+#################################################
 
 
 
