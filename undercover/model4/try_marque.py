@@ -35,6 +35,8 @@ joblib.dump((ez_cat1,ez_cat2,ez_cat3), ddir+'/joblib/ez_cat')
 (stage1_log_proba_test,stage2_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/backup/log_proba_test')
 
 
+(stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/log_proba_valid')
+
 for i in range(stage2_log_proba_valid.shape[1]):
     cat2 = itocat2[i]
     cat1 = cat2tocat1[cat2]
@@ -55,17 +57,39 @@ for i in range(stage3_log_proba_valid.shape[1]):
 # find weak learners
 ######################
 
-confidence = [sorted(a,reverse=True)[0]-sorted(a,reverse=True)[1] for a in stage1_log_proba_valid]
-score = [-sorted(a,reverse=True)[0] for a in stage1_log_proba_valid]
+(stage1_log_proba,stage3_log_proba) = joblib.load(ddir+'/joblib/log_proba_test')
 
-accuracy = np.array(confidence)*np.array(score)
-np.accuracy>0.3
+for i in range(stage3_log_proba.shape[1]):
+    cat3 = itocat3[i]
+    cat1 = cat3tocat1[cat3]
+    j = cat1toi[cat1]
+    stage3_log_proba[:,i] += stage1_log_proba[:,j]
 
-#plt.hist(confidence,normed=True,bins=300,alpha=0.5,label='confidence')
-#plt.hist(score,normed=True,bins=300,alpha=0.5,label='score')
-plt.hist(accuracy,normed=True,bins=300,alpha=0.5,label='accuracy')
+confidence1 = np.array([sorted(a,reverse=True)[0] for a in stage1_log_proba])
+print 'stage1 score',sum(np.exp(confidence1))/len(confidence1)
+confidence3 = np.array([sorted(a,reverse=True)[0] for a in stage3_log_proba])
+print 'stage3 score',sum(np.exp(confidence3))/len(confidence3)
+
+#accuracy = np.array(confidence)*np.array(score)
+
+plt.hist(np.exp(confidence1),normed=True,bins=300,alpha=0.5,label='confidence stage1')
+plt.hist(np.exp(3*confidence1),normed=True,bins=300,alpha=0.5,label='confidence stage1^3')
+plt.hist(np.exp(confidence3),normed=True,bins=300,alpha=0.5,label='confidence stage2')
 plt.legend()
 plt.show()
+
+# stage1 weak learner
+rows = np.nonzero(np.exp(confidence1) < 0.5)[0]
+predict_cat3 = np.array([itocat3[i] for i in np.argmax(stage3_log_proba,axis=1)])
+test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
+rayon = pd.read_csv(ddir+'rayon.csv',sep=';').fillna('ZZZ')
+
+weak = test.ix[rows]
+weak['Categorie3'] = predict_cat3[rows]
+weak = weak.merge(rayon,how='inner',on='Categorie3')
+weak = weak[[u'Categorie3_Name',u'Description', u'Libelle', u'Marque', u'prix']]
+
+weak.to_csv(ddir+'weak.csv',sep=';',index=False)
 
 
 ######################

@@ -59,7 +59,7 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = stage1_vectorizer(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=5)
+    cla = LogisticRegression(C=7)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -84,7 +84,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
         return (sct,scv)
     vec,X = stage3_vectorizer(df.txt)
     Y = df['Categorie3'].values
-    cla = LogisticRegression(C=1)
+    cla = LogisticRegression(C=15)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie3)
     sct = cla.score(X[:min(10000,len(df))],Y[:min(10000,len(df))])
@@ -272,13 +272,34 @@ submit(dftest,predict_cat3_test)
 ##########################
 # candidate top model    #
 ##########################
+
+##################################
+# NOTE : perfect training & validation on top's 456 NN
+# NOTE : C=7,max_features=345678 ngram=(1,2)
+# NOTE : C=15,max_features=234567 ngram=(1,3)
+# stage1 elapsed time : 3943.4581399
+# stage1 training score : 0.9861
+# stage1 validation score : 0.879789092724
+# stage3 elapsed time : 5396.37603402
+# stage3 training score : 0.99765
+# stage3 validation score : 0.862068965517
+# validation score : 0.879789092724 0.696399600649
+# (resultat57.csv) test score : NONONONONON WAITING MIDNIGHT ...
+##################################
+
 ##################################
 # NOTE : perfect training & validation on top's 456 NN
 # NOTE : C=5,max_features=345678 ngram=(1,2)
 # NOTE : C=1,max_features=234567 ngram=(1,3)
-# in progress
+# stage1 elapsed time : 3674.38636899
+# stage1 training score : 0.9829
+# stage1 validation score : 0.878884312991
+# stage3 elapsed time : 3896.88222098
+# stage3 training score : 0.9697
+# stage3 validation score : 0.83226758485
+# validation score : 0.878884312991 0.665886684138
+# (resultat55.csv) test score : 65,06217%
 ##################################
-
 
 ##################################
 # NOTE : perfect training & validation on top's 456 NN
