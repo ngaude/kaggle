@@ -11,46 +11,62 @@ import sys
 
 from utils import ddir,header
 
-def training_sample_random(dftrain,N = 200,class_ratio = dict()):
+def training_sample_random(df,N = 200,class_ratio = dict(),mincount=7):
     N = int(N)
-    cl = dftrain.Categorie3
+    cl = df.Categorie3
     cc = cl.groupby(cl)
-    s = (cc.count() >= 7)
+    s = (cc.count() >= mincount)
     labelmaj = s[s].index
     print 'sampling ~',N,'samples for any of',len(labelmaj),'classes'
     dfs = []
     for i,cat in enumerate(labelmaj):
         if i%100==0:
             print i,'/',len(labelmaj),':'
-        df = dftrain[dftrain.Categorie3 == cat]
+        dfcat = df[df.Categorie3 == cat]
         sample_count = int(np.round(N*class_ratio.get(cat,1)))
-        if len(df)>=sample_count:
+        if len(dfcat)>=sample_count:
             # undersample sample_count samples : take the closest first
-            rows = random.sample(df.index, sample_count)
-            dfs.append(df.ix[rows])
+            rows = random.sample(dfcat.index, sample_count)
+            dfs.append(dfcat.ix[rows])
         else:
             # sample all samples + oversample the remaining
-            dfs.append(df)
-            df = df.iloc[np.random.randint(0, len(df), size=sample_count-len(df))]
-            dfs.append(df)
+            dfs.append(dfcat)
+            dfcat = dfcat.iloc[np.random.randint(0, len(dfcat), size=sample_count-len(dfcat))]
+            dfs.append(dfcat)
     dfsample = pd.concat(dfs)
     dfsample = dfsample.reset_index(drop=True)
     dfsample = dfsample.reindex(np.random.permutation(dfsample.index),copy=False)
     return dfsample
 
-# NOTE : training_normed is the first 1560000 rows of shuffled normalized training set
-# NOTE : validation_normed is the last 186885 rows of shuffled normalized training set
+# NOTE : training_head is the first 1500000 rows of shuffled normalized data set used for training only
+# NOTE : training_tail is the last 786885 rows of shuffled normalized data set used for validation only
 
-dftrain = pd.read_csv(ddir+'training_normed.csv',sep=';',names = header(),nrows=15000000).fillna('')
+
+##########################
+# building the training set
+##########################
+
 class_ratio = joblib.load(ddir+'joblib/class_ratio')
+df = pd.read_csv(ddir+'training_head.csv',sep=';',names = header()).fillna('')
+for i in range(9):
+    print i
+    dfsample = training_sample_random(df,N=456,class_ratio=class_ratio)
+    dfsample.to_csv(ddir+'training_random.csv.'+str(i),sep=';',index=False,header=False)
 
-dfsample = training_sample_random(dftrain,N=456,class_ratio=class_ratio)
+##########################
+# building the validation set
+##########################
 
-if len(sys.argv)<2:
-    ensemble = ''
-else:
-    ensemble = '.'+sys.argv[1]
+class_ratio = joblib.load(ddir+'joblib/class_ratio')
+df = pd.read_csv(ddir+'training_tail.csv',sep=';',names = header()).fillna('')
+for i in range(9):
+    print i
+    dfsample = training_sample_random(df,N=7,class_ratio=class_ratio,mincount=1)
+    dfsample.to_csv(ddir+'validation_random.csv.'+str(i),sep=';',index=False,header=False)
 
-print ddir+'training_random.csv'+ensemble
 
-dfsample.to_csv(ddir+'training_random.csv'+ensemble,sep=';',index=False,header=False)
+
+
+
+
+

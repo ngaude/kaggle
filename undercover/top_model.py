@@ -5,6 +5,18 @@ Created on Mon Jul 06 23:14:18 2015
 
 @author: ngaude
 """
+##################
+# NOTE NOTE NOTE #
+##################
+
+ext = '.0' # default value
+
+import sys
+if len(sys.argv)==2:
+    assert int(sys.argv[1]) in range(9)
+    ext = '.'+str(int(sys.argv[1]))
+    print 'training ensembe model '+ext
+
 
 from utils import wdir,ddir,header,normalize_file,add_txt
 import numpy as np
@@ -37,11 +49,18 @@ def vectorizer(txt):
     X = vec.fit_transform(txt)
     return (vec,X)
 
-def create_sample(df,label,mincount,maxsampling):
-    fname = ddir+'training_sampled_'+label+'.csv'
-    dfsample = training_sample(df,label,mincount,maxsampling)
-    dfsample.to_csv(fname,sep=';',index=False,header=False)
-    return dfsample
+def vectorizer_stage3(txt):
+    vec = TfidfVectorizer(
+        min_df = 1,
+        stop_words = None,
+        smooth_idf=True,
+        norm='l2',
+        sublinear_tf=True,
+        use_idf=True,
+        ngram_range=(1,2))
+    X = vec.fit_transform(txt)
+    return (vec,X)
+
 
 def training_stage1(dftrain,dfvalid):
     fname = ddir + 'joblib/stage1'
@@ -49,7 +68,7 @@ def training_stage1(dftrain,dfvalid):
     print 'training',basename(fname)
     df = dftrain
     dfv = dfvalid
-    vec,X = vectorizer(df.txt)
+    vec,X = vectorizer_stage1(df.txt)
     Y = df['Categorie1'].values
     cla = LogisticRegression(C=5)
     cla.fit(X,Y)
@@ -58,7 +77,7 @@ def training_stage1(dftrain,dfvalid):
     Yv = dfv['Categorie1'].values
     sct = cla.score(X[:10000],Y[:10000])
     scv = cla.score(Xv,Yv)
-    joblib.dump((labels,vec,cla),fname)
+    joblib.dump((labels,vec,cla),fname+ext)
     del X,Y,Xv,Yv,vec,cla
     return sct,scv
 
@@ -68,13 +87,13 @@ def training_stage3(dftrain,dfvalid,cat,i):
     dfv = dfvalid[dfvalid.Categorie1 == cat].reset_index(drop=True)
     labels = np.unique(df.Categorie3)
     if len(labels)==1:
-        joblib.dump((labels,None,None),fname)
+        joblib.dump((labels,None,None),fname+ext)
         scv = -1
         sct = -1
         print 'training',cat,'\t\t(',i,') : N=',len(df),'K=',len(labels)
         print 'training',cat,'\t\t(',i,') : training=',sct,'validation=',scv
         return (sct,scv)
-    vec,X = vectorizer(df.txt)
+    vec,X = vectorizer_stage3(df.txt)
     Y = df['Categorie3'].values
     cla = LogisticRegression(C=5)
     cla.fit(X,Y)
@@ -88,7 +107,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
         scv = cla.score(Xv,Yv)
     print 'training',cat,'\t\t(',i,') : N=',len(df),'K=',len(labels)
     print 'training',cat,'\t\t(',i,') : training=',sct,'validation=',scv
-    joblib.dump((labels,vec,cla),fname)
+    joblib.dump((labels,vec,cla),fname+ext)
     del vec,cla
     return (sct,scv)
 
@@ -112,8 +131,8 @@ else:
     ensemble = '.'+sys.argv[1]
 
 
-dftrain = pd.read_csv(ddir+'training_random.csv'+ensemble,sep=';',names = header()).fillna('')
-dfvalid = pd.read_csv(ddir+'validation_normed.csv',sep=';',names = header()).fillna('')
+dftrain = pd.read_csv(ddir+'training_random.csv'+ext,sep=';',names = header()).fillna('')
+dfvalid = pd.read_csv(ddir+'validation_random.csv'+ext,sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
 
 add_txt(dftrain)
@@ -172,12 +191,6 @@ def log_proba(df,vec,cla):
     lp = cla.predict_log_proba(X)
     return (cla.classes_,lp)
 
-dfvalid = pd.read_csv(ddir+'validation_perfect.csv',sep=';',names = header()).fillna('').reset_index()
-dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
-
-add_txt(dfvalid)
-add_txt(dftest)
-
 #######################
 # stage 1 log proba filling
 #######################
@@ -223,10 +236,10 @@ for ii,cat in enumerate(itocat1):
         stage3_log_proba_test[:,j] = lpt[:,i]
     del labels,vec,cla
 
-print '>>> dump stage1 & stage2 log_proba'
-joblib.dump((stage1_log_proba_valid,stage3_log_proba_valid),ddir+'/joblib/log_proba_valid')
-joblib.dump((stage1_log_proba_test,stage3_log_proba_test),ddir+'/joblib/log_proba_test')
-print '<<< dump stage1 & stage2 log_proba'
+print '>>> write stage1 & stage2 log_proba'
+joblib.dump((stage1_log_proba_valid,stage3_log_proba_valid),ddir+'/joblib/log_proba_valid'+ext)
+joblib.dump((stage1_log_proba_test,stage3_log_proba_test),ddir+'/joblib/log_proba_test'+ext)
+print '<<< write stage1 & stage2 log_proba'
 
 
 ##################
@@ -257,7 +270,7 @@ def submit(df,Y):
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = Y
     df= df[['Id_Produit','Id_Categorie']]
-    df.to_csv(submit_file,sep=';',index=False)
+    df.to_csv(submit_file+ext,sep=';',index=False)
 
 score_cat1 = sum(dfvalid.Categorie1 == predict_cat1_valid)*1.0/len(dfvalid)
 score_cat3 = sum(dfvalid.Categorie3 == predict_cat3_valid)*1.0/len(dfvalid)

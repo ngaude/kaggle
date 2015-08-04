@@ -25,9 +25,23 @@ from joblib import Parallel, delayed
 import time
 
 from sklearn.grid_search import ParameterGrid 
-from sklearn.grid_search import GridSearchCV
 
-def vectorizer(txt):
+###################
+# define ensemble #
+###################
+
+ext = '.0' # default value
+
+import sys
+if len(sys.argv)==2:
+    assert int(sys.argv[1]) in range(9)
+    ext = '.'+str(int(sys.argv[1]))
+
+print '*'*50
+print 'training with random <'+ext+'>'
+print '*'*50
+
+def vectorizer_stage3(txt):
     vec = TfidfVectorizer(
         min_df = 1,
         stop_words = None,
@@ -39,79 +53,87 @@ def vectorizer(txt):
     X = vec.fit_transform(txt)
     return (vec,X)
 
-def pfit(p,X,Y,Xv,Yv):
-    cla = LogisticRegression(C=p['C'],dual=p['dual'],class_weight=p['class_weight'],penalty=p['penalty'])
-    cla.fit(X,Y)
-    sc = cla.score(Xv,Yv)
-    print p,sc
-    return (cla,sc)
+def filter_cat1(df,cat1):
+    return df[df.Categorie1 == cat1].reset_index(drop=True)
 
-def best_classifier(X,Y,Xv,Yv):
-    parameters = [
-        {'C':[1,3,10,30,100,300,1000],'dual':[False],'class_weight':['auto',None],'penalty':['l1','l2']},
-        {'C':[1,3,10,30,100,300,1000],'dual':[True],'class_weight':['auto',None],'penalty':['l2']}]
+def pfit(p,X,Y,Xvs,Yvs):
+    tt = -time.time()
+    
+    cla = LogisticRegression(C=p['C'],penalty='l2',class_weight = 'auto')
+    cla.fit(X,Y)
+    tt += time.time()
+    scs = [cla.score(Xv,Yv) for Xv,Yv in zip(Xvs,Yvs)]
+    sc = (np.mean(scs),np.std(scs))
+    print tt,p,sc
+    return (sc,cla)
+
+def best_classifier(X,Y,Xvs,Yvs):
+    parameters = {'C':[3,13,67,330,1636,8103]}
     pg = ParameterGrid(parameters)
-    clas = Parallel(n_jobs=3)(delayed(pfit)(p,X,Y,Xv,Yv) for p in pg)
+    clas = Parallel(n_jobs=4)(delayed(pfit)(p,X,Y,Xvs,Yvs) for p in pg)
     clas.sort(reverse=True)
-    cla,sc = clas[0]
+    (sc,cla) = clas[0]
+    print '-'*20
+    print 'best is ',cla,sc
+    print '-'*20
     return cla,sc
 
-def training_stage3(dftrain,dfvalid,cat1,i):
+def training_stage3(dft,dfvs,cat1,i):
     fname = ddir + 'joblib/stage3_'+str(cat1)
-    df = dftrain[dftrain.Categorie1 == cat1].reset_index(drop=True)
-    dfv = dfvalid[dfvalid.Categorie1 == cat1].reset_index(drop=True)
-    labels = np.unique(df.Categorie3)
+    dft = filter_cat1(dft,cat1)
+    dfvs = [filter_cat1(dfv,cat1) for dfv in dfvs]
+    labels = np.unique(dft.Categorie3)
     if len(labels)==1:
-        joblib.dump((labels,None,None),fname)
-        scv = -1
-        sct = -1
-        print 'training',cat1,'\t\t(',i,') : N=',len(df),'K=',len(labels)
-        print 'training',cat1,'\t\t(',i,') : training=',sct,'validation=',scv
-        return (sct,scv)
-    vec,X = vectorizer(df.txt)
-    Y = df['Categorie3'].values
-    # FIXME : shall be at least one element in Xv
-    # FIXME : shall be at least one element in Xy
-    # FIXME : shall be at least one element in Xy
-    # FIXME : shall be at least one element in Xy
-    labels = np.unique(df.Categorie3)
-    if len(dfv)==0:
-        scv = -1
+        # only one label
+        vec = None
         cla = None
+        scv = (-1,0)
+        joblib.dump((labels,vec,cla,scv),fname+ext)
+        print 'training',cat1,': skipped, there is only one label to predict'
+        return scv
+    vec,X = vectorizer_stage3(dft.txt)
+    Y = dft['Categorie3'].values
+    if sum([len(dfv) for dfv in dfvs]) == 0:
+        print 'default parameter'
+        cla = LogisticRegression()
+        cla.fit(X,Y)
+        scv = (-1,0)
     else:
-        Xv = vec.transform(dfv.txt)
-        Yv = dfv['Categorie3'].values
-        cla,scv = best_classifier(X,Y,Xv,Yv)
-    print 'training',cat1,'\t\t(',i,') : N=',len(df),'K=',len(labels)
-    print 'training',cat1,'\t\t(',i,') : validation=',scv
-    joblib.dump((labels,vec,cla),fname)
+        # performs a gridsearch
+        Xvs = [ vec.transform(dfv.txt) for dfv in dfvs]
+        Yvs = [ dfv['Categorie3'].values for dfv in dfvs]
+        cla,scv = best_classifier(X,Y,Xvs,Yvs)
+    print 'training',cat1,'\t\t(',i,') N=',len(dft),'K=',len(labels),': mean =',scv[0],'dev=',scv[1]
+    joblib.dump((labels,vec,cla,scv),fname+ext)
     del vec,cla
-    return (sct,scv)
+    return scv
 
-dftrain = pd.read_csv(ddir+'training_random.csv.0',sep=';',names = header()).fillna('')
-dfvalid = pd.read_csv(ddir+'validation.csv.0',sep=';',names = header()).fillna('')
-dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
-
+#################
+# prepare train #
+#################
+dftrain = pd.read_csv(ddir+'training_random.csv'+ext,sep=';',names = header()).fillna('')
 add_txt(dftrain)
-add_txt(dfvalid)
-add_txt(dftest)
-
 dftrain = dftrain[['Categorie3','Categorie1','txt']]
-dfvalid = dfvalid[['Categorie3','Categorie1','txt']]
-dftest = dftest[['Identifiant_Produit','txt']]
 
+#################
+# prepare valid #
+#################
+dfvs = [pd.read_csv(ddir+'validation_random.csv.'+str(i),sep=';',names = header()).fillna('') for i in range(9)]
+for i in range(9):
+    add_txt(dfvs[i])
+    dfvs[i] = dfvs[i][['Identifiant_Produit','Categorie3','Categorie1','txt']]
 
+#################
+# prepare test  #
+#################
 
-cat1  =1000000235
+for i,cat1 in enumerate(np.unique(dftrain.Categorie1)):
+    dt = -time.time()
+    print '*'*50
+    print '>> cv training',cat1,'for',ext,' #'+str(i)+'/50'
+    sc,st = training_stage3(dftrain,dfvs,cat1,i)
+    print '<< best is',sc,'with variance',st
+    print '*'*50
+    dt += time.time()
+    print 'time=',dt
 
-dfts = []
-dfvs = []
-dft = dftrain[dftrain.Categorie1 == cat1].reset_index(drop=True)
-dfv = dfvalid[dfvalid.Categorie1 == cat1].reset_index(drop=True)
-
-dt = -time.time()
-sct,scv = training_stage3(dft,dfv,cat1,0)
-dt += time.time()
-
-(labels,vec,cla) = joblib.load(ddir + 'joblib/stage3_'+str(cat1))
-print cla.best_params_
