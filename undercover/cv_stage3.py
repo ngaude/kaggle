@@ -137,3 +137,23 @@ for i,cat1 in enumerate(np.unique(dftrain.Categorie1)):
     dt += time.time()
     print 'time=',dt
 
+##################################
+# load a precomputed stage1 from (resultat57.csv):
+##################################
+# NOTE : perfect training & validation on top's 456 NN
+# NOTE : C=7,max_features=345678 ngram=(1,2)
+# NOTE : C=15,max_features=234567 ngram=(1,3)
+# stage1 elapsed time : 3943.4581399
+# stage1 training score : 0.9861
+# stage1 validation score : 0.879789092724
+# stage3 elapsed time : 5396.37603402
+# stage3 training score : 0.99765
+# stage3 validation score : 0.862068965517
+# validation score : 0.879789092724 0.696399600649
+# (resultat57.csv) test score : 65,85869%
+# ==> 66,23689%
+# encouraging towards an overfitting stage1...
+##################################
+
+
+

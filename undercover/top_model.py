@@ -75,7 +75,7 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = vectorizer_stage1(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=10)
+    cla = LogisticRegression(C=100)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -128,12 +128,6 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage1 : Categorie1 
 # stage3 : Categorie3|Categorie1
 #######################
-
-
-if len(sys.argv)<2:
-    ensemble = ''
-else:
-    ensemble = '.'+sys.argv[1]
 
 
 dftrain = pd.read_csv(ddir+'training_random.csv'+ext,sep=';',names = header()).fillna('')
@@ -233,7 +227,7 @@ for ii,cat in enumerate(itocat1):
     print 'predicting',basename(fname),':',ii,'/',len(itocat1)
     if not isfile(fname): 
         continue
-    (labels,vec,cla) = joblib.load(fname)
+    (labels,vec,cla,__) = joblib.load(fname)
     if len(labels)==1:
         k = labels[0]
         j = cat3toi[k]
@@ -252,7 +246,6 @@ print '>>> write stage1 & stage2 log_proba'
 joblib.dump((stage1_log_proba_valid,stage3_log_proba_valid),ddir+'/joblib/log_proba_valid'+ext)
 joblib.dump((stage1_log_proba_test,stage3_log_proba_test),ddir+'/joblib/log_proba_test'+ext)
 print '<<< write stage1 & stage2 log_proba'
-
 
 ##################
 # (stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/log_proba_valid'+ext)
