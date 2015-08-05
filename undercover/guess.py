@@ -86,7 +86,7 @@ test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
 add_txt(test)
 test.txt = map(normalize_guess,test.txt)
 
-resultat = pd.read_csv(ddir+'resultat58.csv',sep=';')
+resultat = pd.read_csv(ddir+'resultat_majority.csv',sep=';')
 
 
 df = test.merge(resultat,'left',None,'Identifiant_Produit','Id_Produit')
