@@ -36,11 +36,16 @@ from os.path import isfile
 from joblib import Parallel, delayed
 import time
 
-def vectorizer(txt):
+def log_proba(df,vec,cla):
+    assert 'txt' in df.columns
+    X = vec.transform(df.txt)
+    lp = cla.predict_log_proba(X)
+    return (cla.classes_,lp)
+
+def vectorizer_stage1(txt):
     vec = TfidfVectorizer(
-        min_df = 2,
+        min_df = 1,
         stop_words = None,
-        max_features=234567,
         smooth_idf=True,
         norm='l2',
         sublinear_tf=True,
@@ -70,7 +75,7 @@ def training_stage1(dftrain,dfvalid):
     dfv = dfvalid
     vec,X = vectorizer_stage1(df.txt)
     Y = df['Categorie1'].values
-    cla = LogisticRegression(C=5)
+    cla = LogisticRegression(C=10)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie1)
     Xv = vec.transform(dfv.txt)
@@ -95,7 +100,7 @@ def training_stage3(dftrain,dfvalid,cat,i):
         return (sct,scv)
     vec,X = vectorizer_stage3(df.txt)
     Y = df['Categorie3'].values
-    cla = LogisticRegression(C=5)
+    cla = LogisticRegression(C=100)
     cla.fit(X,Y)
     labels = np.unique(df.Categorie3)
     sct = cla.score(X[:min(10000,len(df))],Y[:min(10000,len(df))])
@@ -143,6 +148,7 @@ dftrain = dftrain[['Categorie3','Categorie1','txt']]
 dfvalid = dfvalid[['Categorie3','Categorie1','txt']]
 dftest = dftest[['Identifiant_Produit','txt']]
 
+
 # training stage1
 
 dt = -time.time()
@@ -185,11 +191,17 @@ print '##################################'
 # predict : 
 # P(Categorie3) = P(Categorie1) *  P(Categorie3|Categorie1)
 
-def log_proba(df,vec,cla):
-    assert 'txt' in df.columns
-    X = vec.transform(df.txt)
-    lp = cla.predict_log_proba(X)
-    return (cla.classes_,lp)
+"""
+
+dfvalid = pd.read_csv(ddir+'validation_random.csv'+ext,sep=';',names = header()).fillna('')
+dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
+add_txt(dfvalid)
+add_txt(dftest)
+dfvalid = dfvalid[['Categorie3','Categorie1','txt']]
+dftest = dftest[['Identifiant_Produit','txt']]
+
+"""
+
 
 #######################
 # stage 1 log proba filling
@@ -197,7 +209,7 @@ def log_proba(df,vec,cla):
 stage1_log_proba_valid = np.full(shape=(len(dfvalid),cat1count),fill_value = -666.,dtype = float)
 stage1_log_proba_test = np.full(shape=(len(dftest),cat1count),fill_value = -666.,dtype = float)
 
-fname = ddir + 'joblib/stage1'
+fname = ddir + 'joblib/stage1'+ext
 (labels,vec,cla) = joblib.load(fname)
 (classes,lpv) = log_proba(dfvalid,vec,cla)
 (classes,lpt) = log_proba(dftest,vec,cla)
@@ -216,7 +228,7 @@ stage3_log_proba_valid = np.full(shape=(len(dfvalid),cat3count),fill_value = -66
 stage3_log_proba_test = np.full(shape=(len(dftest),cat3count),fill_value = -666.,dtype = float)
 
 for ii,cat in enumerate(itocat1):
-    fname = ddir + 'joblib/stage3_'+str(cat)
+    fname = ddir + 'joblib/stage3_'+str(cat)+ext
     print '-'*50
     print 'predicting',basename(fname),':',ii,'/',len(itocat1)
     if not isfile(fname): 
@@ -243,22 +255,32 @@ print '<<< write stage1 & stage2 log_proba'
 
 
 ##################
-# (stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/log_proba_valid')
-# (stage1_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/log_proba_test')
+# (stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/log_proba_valid'+ext)
+# (stage1_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/log_proba_test'+ext)
 ##################
 
 ##################
 # bayes rulez ....
 ##################
 
+def greedy_prediction(stage1_log_proba,stage3_log_proba):
+    cat1 = [itocat1[c] for c in stage1_log_proba.argmax(axis=1)]
+    for i in range(stage3_log_proba.shape[0]):
+        stage3_log_proba[i,:] = [stage3_log_proba[i,j] if cat3tocat1[cat3]==cat1[i] else -666 for j,cat3 in enumerate(itocat3)]
+    return
+
+def bayes_prediction(stage1_log_proba,stage3_log_proba):
+    for i in range(stage3_log_proba_valid.shape[1]):
+        cat3 = itocat3[i]
+        cat1 = cat3tocat1[cat3]
+        j = cat1toi[cat1]
+        stage3_log_proba[:,i] += stage1_log_proba[:,j]
+
+
 assert stage3_log_proba_valid.shape[1] == stage3_log_proba_test.shape[1]
 
-for i in range(stage3_log_proba_valid.shape[1]):
-    cat3 = itocat3[i]
-    cat1 = cat3tocat1[cat3]
-    j = cat1toi[cat1]
-    stage3_log_proba_valid[:,i] += stage1_log_proba_valid[:,j]
-    stage3_log_proba_test[:,i] += stage1_log_proba_test[:,j]
+bayes_prediction(stage1_log_proba_valid,stage3_log_proba_valid)
+bayes_prediction(stage1_log_proba_test,stage3_log_proba_test)
 
 predict_cat1_valid = [itocat1[i] for i in np.argmax(stage1_log_proba_valid,axis=1)]
 predict_cat3_valid = [itocat3[i] for i in np.argmax(stage3_log_proba_valid,axis=1)]
@@ -266,11 +288,11 @@ predict_cat1_test = [itocat1[i] for i in np.argmax(stage1_log_proba_test,axis=1)
 predict_cat3_test = [itocat3[i] for i in np.argmax(stage3_log_proba_test,axis=1)]
 
 def submit(df,Y):
-    submit_file = ddir+'resultat.csv'
+    submit_file = ddir+'resultat.csv'+ext
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = Y
     df= df[['Id_Produit','Id_Categorie']]
-    df.to_csv(submit_file+ext,sep=';',index=False)
+    df.to_csv(submit_file,sep=';',index=False)
 
 score_cat1 = sum(dfvalid.Categorie1 == predict_cat1_valid)*1.0/len(dfvalid)
 score_cat3 = sum(dfvalid.Categorie3 == predict_cat3_valid)*1.0/len(dfvalid)
@@ -280,6 +302,19 @@ submit(dftest,predict_cat3_test)
 ##########################
 # candidate top model    #
 ##########################
+
+##################################
+# NOTE : training & validation on separate random over/under (456*class_ratio) samples / class
+# NOTE : C=10,C=100,max_features= infinite,min_df=1
+##################################
+# stage1 elapsed time : 6527.18386889
+# stage1 training score : 0.9955
+# stage1 validation score : 0.936325132061
+# stage3 elapsed time : 7019.98453307
+# stage3 training score : 0.9989
+# stage3 validation score : 0.913811705848
+# validation score : 0.936325132061 0.836077666207
+##################################
 
 ##################################
 # NOTE : perfect training & validation on top's 456 NN

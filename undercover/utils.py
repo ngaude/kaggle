@@ -257,8 +257,14 @@ def add_txt(df):
     assert 'Marque' in df.columns
     assert 'Libelle' in df.columns
     assert 'Description' in df.columns
-    df['txt'] = (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
+    df['txt'] = get_txt(df)
     return
+
+def get_txt(df):
+    assert 'Marque' in df.columns
+    assert 'Libelle' in df.columns
+    assert 'Description' in df.columns
+    return (df.Marque+' ')*3+(df.Libelle+' ')*2+df.Description
 
 def result_diffing(fx,fy):
     dfx = pd.read_csv(fx,sep=';').fillna('')
