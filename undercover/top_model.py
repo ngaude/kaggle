@@ -129,7 +129,6 @@ def training_stage3(dftrain,dfvalid,cat,i):
 # stage3 : Categorie3|Categorie1
 #######################
 
-
 dftrain = pd.read_csv(ddir+'training_random.csv'+ext,sep=';',names = header()).fillna('')
 dfvalid = pd.read_csv(ddir+'validation_random.csv'+ext,sep=';',names = header()).fillna('')
 dftest = pd.read_csv(ddir+'test_normed.csv',sep=';',names = header(test=True)).fillna('')
@@ -227,7 +226,7 @@ for ii,cat in enumerate(itocat1):
     print 'predicting',basename(fname),':',ii,'/',len(itocat1)
     if not isfile(fname): 
         continue
-    (labels,vec,cla,__) = joblib.load(fname)
+    (labels,vec,cla) = joblib.load(fname)
     if len(labels)==1:
         k = labels[0]
         j = cat3toi[k]
@@ -247,6 +246,7 @@ joblib.dump((stage1_log_proba_valid,stage3_log_proba_valid),ddir+'/joblib/log_pr
 joblib.dump((stage1_log_proba_test,stage3_log_proba_test),ddir+'/joblib/log_proba_test'+ext)
 print '<<< write stage1 & stage2 log_proba'
 
+
 ##################
 # (stage1_log_proba_valid,stage3_log_proba_valid) = joblib.load(ddir+'/joblib/log_proba_valid'+ext)
 # (stage1_log_proba_test,stage3_log_proba_test) = joblib.load(ddir+'/joblib/log_proba_test'+ext)
@@ -263,7 +263,7 @@ def greedy_prediction(stage1_log_proba,stage3_log_proba):
     return
 
 def bayes_prediction(stage1_log_proba,stage3_log_proba):
-    for i in range(stage3_log_proba_valid.shape[1]):
+    for i in range(stage3_log_proba.shape[1]):
         cat3 = itocat3[i]
         cat1 = cat3tocat1[cat3]
         j = cat1toi[cat1]
