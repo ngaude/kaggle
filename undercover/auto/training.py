@@ -210,7 +210,7 @@ for ii,cat in enumerate(itocat1):
     print 'predicting',basename(fname),':',ii,'/',len(itocat1)
     if not isfile(fname): 
         continue
-    (labels,vec,cla,__) = joblib.load(fname)
+    (labels,vec,cla,) = joblib.load(fname)
     if len(labels)==1:
         k = labels[0]
         j = cat3toi[k]
@@ -264,14 +264,14 @@ predict_cat1_test = [itocat1[i] for i in np.argmax(stage1_log_proba_test,axis=1)
 predict_cat3_test = [itocat3[i] for i in np.argmax(stage3_log_proba_test,axis=1)]
 
 def submit(df,Y):
-    submit_file = ddir+'resultat.csv'+ext
+    submit_file = ddir+'resultat.auto.'+ext+'.csv'
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = Y
     df= df[['Id_Produit','Id_Categorie']]
     df.to_csv(submit_file,sep=';',index=False)
 
 def save_proba(df,Y,p1,p3):
-    submit_file = ddir+'proba.csv'+ext
+    submit_file = ddir+'proba.auto'+ext+'csv'
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = Y
     df['Proba_Categorie1'] = p1
