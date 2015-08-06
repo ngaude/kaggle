@@ -246,7 +246,7 @@ def greedy_prediction(stage1_log_proba,stage3_log_proba):
     return
 
 def bayes_prediction(stage1_log_proba,stage3_log_proba):
-    for i in range(stage3_log_proba_valid.shape[1]):
+    for i in range(stage3_log_proba.shape[1]):
         cat3 = itocat3[i]
         cat1 = cat3tocat1[cat3]
         j = cat1toi[cat1]
@@ -264,14 +264,14 @@ predict_cat1_test = [itocat1[i] for i in np.argmax(stage1_log_proba_test,axis=1)
 predict_cat3_test = [itocat3[i] for i in np.argmax(stage3_log_proba_test,axis=1)]
 
 def submit(df,Y):
-    submit_file = ddir+'resultat.auto.'+ext+'.csv'
+    submit_file = ddir+'resultat.auto'+ext+'.csv'
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = Y
     df= df[['Id_Produit','Id_Categorie']]
     df.to_csv(submit_file,sep=';',index=False)
 
 def save_proba(df,Y,p1,p3):
-    submit_file = ddir+'proba.auto'+ext+'csv'
+    submit_file = ddir+'proba.auto'+ext+'.csv'
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = Y
     df['Proba_Categorie1'] = p1
