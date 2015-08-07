@@ -4,7 +4,7 @@
 from utils import ddir,header,add_txt,normalize_guess
 import numpy as np
 import pandas as pd
-from os.path import basename
+from os.path import basename,dirname
 import time
 import random
 from sklearn.externals import joblib
@@ -21,29 +21,16 @@ from utils import cat1count,cat2count,cat3count
 allowed_guess = [
 'arceau securite poussette',
 'beurre cacahuete',
-'boite rangement',
-'blu ray',
 'carte externe',
 'centre repassage',
 'combine cafetiere expresso',
-'enfile aiguille',
 'film protection',
-'histoire geographie',
 'huile transmission',
-'lits superposes',
-'machine expresso',
-'machine fumee',
 'machine pop corn',
-'machine hot dog',
-'nettoyant vitres',
 'pack accessoires',
 'pack clavier souris',
-'pack logiciel',
 'pad entrainement',
 'papier dessin',
-'pate modeler',
-'pate tartiner',
-'physique chimie',
 'porte casque',
 'porte kayak',
 'poubelle bord',
@@ -52,7 +39,6 @@ allowed_guess = [
 'set sacs voyage',
 'set valises',
 'simulateur conduite',
-'station accueil',
 'table mixage',
 'telecommande domotique',
 'tiroir bureau',
@@ -86,8 +72,10 @@ test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
 add_txt(test)
 test.txt = map(normalize_guess,test.txt)
 
-resultat = pd.read_csv(ddir+'resultat_majority.csv',sep=';')
+rname  = '/home/ngaude/workspace/data/cdiscount.proba/resultat.auto.merging.csv'
+rdir = dirname(rname)
 
+resultat = pd.read_csv(rname,sep=';')
 
 df = test.merge(resultat,'left',None,'Identifiant_Produit','Id_Produit')
 df = df.merge(rayon,'left',None,'Id_Categorie','Categorie3')
@@ -98,9 +86,9 @@ diff = df[df.Categorie3 != df.guess]
 diff = diff[['Identifiant_Produit','Description','Libelle','Marque','prix','Categorie3_Name','guess']]
 diff = diff.merge(rayon,'left',None,'guess','Categorie3')
 diff = diff[[u'guess',u'Categorie3_Name_x',u'Categorie3_Name_y',  u'Description', u'Libelle', u'Marque', u'prix']]
-diff.to_csv(ddir+'diff.csv',sep=';',index=False)
+diff.to_csv(rdir+'/diff.csv',sep=';',index=False)
 
 guess = df[['Id_Produit','guess']]
 guess = guess.drop_duplicates()
-guess.to_csv(ddir+'guess.csv',sep=';',index=False)
+guess.to_csv(rdir+'/guess.csv',sep=';',index=False)
 
