@@ -1,5 +1,5 @@
 #!/bin/sh
-# time python sampling.py 0
+# time python sampling.py 
 # time python training.py 0
 
 # time python sampling.py 100
@@ -18,22 +18,29 @@
 # time python training.py 103
 # rm /home/ngaude/workspace/data/cdiscount.auto/joblib/stage*.103
 
-time python sampling.py 104
-time python training.py 104
-time python sampling.py 105
-time python training.py 105
-time python sampling.py 106
-time python training.py 106
-time python sampling.py 107
-time python training.py 107
-time python sampling.py 108
-time python training.py 108
-time python sampling.py 109
-time python training.py 109
-time python sampling.py 110
-time python training.py 110
-time python sampling.py 111
-time python training.py 111
+time python sampling.py 8
+time python training.py 8
+
+time python sampling.py 9
+time python training.py 9
+
+time python sampling.py 10
+time python training.py 10
+
+time python sampling.py 11
+time python training.py 11
+
+time python sampling.py 12
+time python training.py 12
+
+time python sampling.py 13
+time python training.py 13
+
+time python sampling.py 14
+time python training.py 14
+
+time python sampling.py 15
+time python training.py 15
 
 
 
