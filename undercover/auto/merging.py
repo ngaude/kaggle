@@ -23,14 +23,14 @@ stage3_proba_test = np.full(shape=(len(dftest),cat3count),fill_value = 0.,dtype 
 stage1_proba_test = np.full(shape=(len(dftest),cat1count),fill_value = 0.,dtype = float)
 
 def submit(df,Y):
-    submit_file = ddir+'resultat.auto.merging.csv'
+    submit_file = ddir+'resultat.auto.merging.'+str(N)+'.csv'
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = Y
     df= df[['Id_Produit','Id_Categorie']]
     df.to_csv(submit_file,sep=';',index=False)
 
 def save_proba(df,Y,p1,p3):
-    submit_file = ddir+'proba.auto.merging.csv'
+    submit_file = ddir+'proba.auto.merging.'+str(N)+'.csv'
     df['Id_Produit']=df['Identifiant_Produit']
     df['Id_Categorie'] = Y
     df['Proba_Categorie1'] = p1
@@ -39,8 +39,10 @@ def save_proba(df,Y,p1,p3):
     df.to_csv(submit_file,sep=';',index=False)
 
 proba_files = [
-    ddir+'joblib/proba_test_stacked.100-101',
-    ddir+'joblib/proba_test_stacked.102-104',
+    ddir+'joblib/proba_test_stacked.100-111',
+    ddir+'joblib/proba_test_stacked.200-215',
+    ddir+'joblib/proba_test_stacked.300-311',
+    ddir+'joblib/proba_test_stacked.0-19',
     ]
 
 N=0
