@@ -14,12 +14,9 @@ ddir = '/home/ngaude/workspace/data/cdiscount.proba/'
 stage3_proba_stack = np.full(shape=(35065,5789),fill_value = 0.,dtype = float)
 stage1_proba_stack = np.full(shape=(35065,52),fill_value = 0.,dtype = float)
 
-#exts = range(100,102)
-#exts = range(102,105) 
-
 #exts = range(300,312)
 #exts = range(100,112)
-#exts = range(200,216)
+exts = range(200,216)
 
 def bayes_prediction(stage1_log_proba,stage3_log_proba):
     for i in range(stage3_log_proba.shape[1]):
