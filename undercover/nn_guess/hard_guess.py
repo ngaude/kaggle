@@ -19,7 +19,7 @@ assert isfile(sys.argv[1]) ##### usage guess.py $RESULTAT.CSV ####
 
 rname  = sys.argv[1]
 
-ddir = '/home/ngaude/workspace/data/cdiscount'
+ddir = '/home/ngaude/workspace/data/cdiscount/'
 
 #######################################################
 # use complex Categorie3_Name as a good guess
@@ -27,7 +27,7 @@ ddir = '/home/ngaude/workspace/data/cdiscount'
 #######################################################
 
 with open(ddir+'allowed_guess.txt') as f:
-    allowed_guess = f.read().split('\n')
+    allowed_guess = [guess for guess in f.read().split('\n') if len(guess)>5]
 
 def all_guess(r):
     rdf = rayon[rayon.Categorie1 == r.Categorie1]
@@ -43,9 +43,6 @@ def one_guess(txt,name):
     if name in txt:
         return True
     return False
-
-# join rayon.csv & test.csv & resultat44.csv
-# keep id
 
 rayon = pd.read_csv(ddir+'rayon.csv',sep=';').fillna('ZZZ')
 rayon.Categorie3_Name = map(normalize_guess,rayon.Categorie3_Name.values)
@@ -68,7 +65,7 @@ diff = df[df.Categorie3 != df.guess]
 diff = diff[['Identifiant_Produit','Description','Libelle','Marque','prix','Categorie3_Name','guess']]
 diff = diff.merge(rayon,'left',None,'guess','Categorie3')
 diff = diff[[u'guess',u'Categorie3_Name_x',u'Categorie3_Name_y',  u'Description', u'Libelle', u'Marque', u'prix']]
-diff.to_csv(rdir+'diff.csv',sep=';',index=False)
+diff.to_csv('diff.csv',sep=';',index=False)
 
 df.Id_Categorie = df.guess
 guess = df[['Id_Produit','Id_Categorie']]

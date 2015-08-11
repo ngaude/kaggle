@@ -46,7 +46,7 @@ nn['nn_num_word'] = nn_num_word;
 def nn_guess_func_conservative(r):
 #     if r.Produit_Cdiscount==0:
 #         return r.Id_Categorie
-    if (r.D < 0.05) and (r.test_num_word)>=3 and (r.nn_num_word) >=3:
+    if (r.D < 0.05) and (r.test_num_word)>=4 and (r.nn_num_word) >=4:
         return r.Categorie3
     if (r.D < 0.07) and (r.test_num_word)>=6 and (r.nn_num_word) >=6:
         return r.Categorie3
@@ -83,7 +83,7 @@ print 'D median = ',nn[(nn.Id_Categorie != nn.guess)].D.median()
 ### save diff for analysis ...
 diff = nn[nn.guess != nn.Id_Categorie]
 diff = diff[['Identifiant_Produit_test','Marque_test','Libelle_test','Description_test','Categorie3','D','test_num_word','Id_Categorie','Marque_nn','Libelle_nn','Description_nn','Identifiant_Produit_nn']]
-rayon = pd.read_csv('rayon.csv',sep=';')
+rayon = pd.read_csv(ddir+'rayon.csv',sep=';')
 diff = diff.merge(rayon,'left','Categorie3')
 diff = diff.merge(rayon,'left',None,'Id_Categorie','Categorie3',suffixes=('_nn','_lr'))
 
