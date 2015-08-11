@@ -86,6 +86,28 @@ def normalize_guess(txt):
     return ' '.join(tokens)
 
 
+
+def normalize_libelle(txt):
+    ####################################
+    # use python-levenshtein to meaningfull find gap in libelle description...
+    # NOTE : no stemming/keep digits and no-stopwords for libelle encoding....
+    ####################################
+    # remove html stuff
+    txt = BeautifulSoup(txt,from_encoding='utf-8').get_text()
+    # lower case
+    txt = txt.lower()
+    # special escaping character '...'
+    txt = txt.replace(u'\u2026','.')
+    txt = txt.replace(u'\u00a0',' ')
+    # remove accent btw
+    txt = unicodedata.normalize('NFD', txt).encode('ascii', 'ignore')
+    #txt = unidecode(txt)
+    # remove non alphanumeric char
+    txt = re.sub('[^a-z_0-9]', ' ', txt)
+    return txt
+
+
+
 def normalize_txt(txt):
     # remove html stuff
     txt = BeautifulSoup(txt,from_encoding='utf-8').get_text()
@@ -279,5 +301,3 @@ def result_diffing(fx,fy):
     df = df[['Id_Produit','Categorie3_Name_x','Categorie3_Name_y','Marque','Libelle','Description','prix']]
     df.to_csv(ddir+'diff.csv',sep=';',index=False)
     return df
-
-
