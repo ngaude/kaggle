@@ -16,7 +16,7 @@ stage1_proba_stack = np.full(shape=(35065,52),fill_value = 0.,dtype = float)
 
 #exts = range(300,312)
 #exts = range(100,112)
-exts = range(200,221)
+exts = range(100,112)+range(16,21)
 #exts = range(16,20)
 
 
@@ -43,4 +43,5 @@ for i in exts:
 
 joblib.dump((exts,stage1_proba_stack,stage3_proba_stack),'proba_test_stacked.'+str(min(exts))+'-'+str(max(exts)))
 
+# joblib.dump((exts,stage1_proba_stack,stage3_proba_stack),'proba_test_stacked.100-116')
 

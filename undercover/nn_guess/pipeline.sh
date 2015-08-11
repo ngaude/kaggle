@@ -13,8 +13,8 @@
 # time python nn_training.py 110
 # time python nn_training.py 111
 
-time python nn_training.py 115
-time python nn_training.py 116
-time python nn_training.py 117
-time python nn_training.py 118
+time python nn_training.py 16
+time python nn_training.py 17
+time python nn_training.py 18
+time python nn_training.py 19
 
