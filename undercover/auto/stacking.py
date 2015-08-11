@@ -16,8 +16,8 @@ stage1_proba_stack = np.full(shape=(35065,52),fill_value = 0.,dtype = float)
 
 #exts = range(300,312)
 #exts = range(100,112)
-#exts = range(200,216)
-exts = range(0,20)
+exts = range(200,221)
+#exts = range(16,20)
 
 
 def bayes_prediction(stage1_log_proba,stage3_log_proba):
