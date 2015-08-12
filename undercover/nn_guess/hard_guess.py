@@ -14,12 +14,15 @@ from utils import cat3tocat2,cat3tocat1,cat2tocat1
 from utils import cat1count,cat2count,cat3count
 import sys
 
+ddir = '/home/ngaude/workspace/data/cdiscount.proba/'
+
 assert len(sys.argv) == 2  ##### usage guess.py $RESULTAT.CSV ####
-assert isfile(sys.argv[1]) ##### usage guess.py $RESULTAT.CSV ####
 
-rname  = sys.argv[1]
+rname  = ddir+sys.argv[1]
 
-ddir = '/home/ngaude/workspace/data/cdiscount/'
+assert isfile(rname) ##### usage guess.py $RESULTAT.CSV ####
+
+
 
 #######################################################
 # use complex Categorie3_Name as a good guess
@@ -65,10 +68,12 @@ diff = df[df.Categorie3 != df.guess]
 diff = diff[['Identifiant_Produit','Description','Libelle','Marque','prix','Categorie3_Name','guess']]
 diff = diff.merge(rayon,'left',None,'guess','Categorie3')
 diff = diff[[u'guess',u'Categorie3_Name_x',u'Categorie3_Name_y',  u'Description', u'Libelle', u'Marque', u'prix']]
-diff.to_csv('diff.csv',sep=';',index=False)
+diff.to_csv('hard_diff.csv',sep=';',index=False)
+
+print 'correction made :',len(diff)
 
 df.Id_Categorie = df.guess
 guess = df[['Id_Produit','Id_Categorie']]
 guess = guess.drop_duplicates()
-guess.to_csv(ddir+'hard_guess.csv',sep=';',index=False)
+guess.to_csv(ddir+'resultat.hard_guess.csv',sep=';',index=False)
 

@@ -31,7 +31,7 @@ for i in exts:
     ext = '.'+str(i)
     print '>> stacking ',ext,'/',len(exts)
     if (i>=200) and (i<300):
-        # FIXME : sounds like 2xx results (danya) are not in good shape !!!
+        # FIXME : sounds like 2xx results (arnold) are not in good shape !!!
         stage1_log_proba_test = np.load(ddir+'joblib/log_proba_test'+ext+'_01.npy')
         stage3_log_proba_test = np.load(ddir+'joblib/log_proba_test'+ext+'_02.npy')
     else:

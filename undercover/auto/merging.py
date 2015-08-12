@@ -39,8 +39,8 @@ def save_proba(df,Y,p1,p3):
     df.to_csv(submit_file,sep=';',index=False)
 
 proba_files = [
-    ddir+'joblib/proba_test_stacked.100-111',
-    ddir+'joblib/proba_test_stacked.200-215',
+    ddir+'joblib/proba_test_stacked.100-116',
+    ddir+'joblib/proba_test_stacked.200-220',
     ddir+'joblib/proba_test_stacked.300-311',
     ddir+'joblib/proba_test_stacked.0-19',
     ]
@@ -49,7 +49,13 @@ N=0
 
 for f in proba_files:
     print '>> merging ',f
-    (l,s1,s3) = joblib.load(f)
+    if (f == ddir+'joblib/proba_test_stacked.200-220'):
+        # FIXME : sounds like 2xx results (arnold) are not in good shape !!!
+        l = [0]*21
+        s1 = np.load(ddir+'joblib/proba_test_stacked.200-220_01.npy')
+        s3 = np.load(ddir+'joblib/proba_test_stacked.200-220_02.npy')
+    else:
+        (l,s1,s3) = joblib.load(f)
     stage1_proba_test += s1
     stage3_proba_test += s3
     N += len(l)

@@ -14,12 +14,12 @@ from utils import cat3tocat2,cat3tocat1,cat2tocat1
 from utils import cat1count,cat2count,cat3count
 import sys
 
+ddir = '/home/ngaude/workspace/data/cdiscount.proba/'
+
 assert len(sys.argv) == 2  ##### usage guess.py $RESULTAT.CSV ####
-assert isfile(sys.argv[1]) ##### usage guess.py $RESULTAT.CSV ####
-
 rname  = sys.argv[1]
+assert isfile(ddir+rname) ##### usage guess.py $RESULTAT.CSV ####
 
-ddir = '/home/ngaude/workspace/data/cdiscount/'
 
 test_normed = pd.read_csv(ddir+'test_normed.csv',sep=';',names=header(True)).fillna('')
 add_txt(test_normed)
@@ -35,7 +35,7 @@ test_nn.drop('Marque', axis=1, inplace=True)
 test_nn.drop('Libelle', axis=1, inplace=True)
 test_nn.drop('Description', axis=1, inplace=True)
 
-best = pd.read_csv(rname,sep=';')
+best = pd.read_csv(ddir+rname,sep=';')
 #best = pd.read_csv('proba.auto.merging.60.csv',sep=';')
 #best.Id_Categorie = 1000015309
 
@@ -43,9 +43,19 @@ nn = test_nn.merge(best,'left',None,'Identifiant_Produit_test','Id_Produit')
 nn['test_num_word'] = test_num_word;
 nn['nn_num_word'] = nn_num_word;
 
-def nn_guess_func_conservative(r):
-#     if r.Produit_Cdiscount==0:
+def nn_guess_func_ultra_conservative(r):
+#    if r.Produit_Cdiscount==0:
 #         return r.Id_Categorie
+    if (r.D < 0.05) and (r.test_num_word)>=4 and (r.nn_num_word) >=4:
+        return r.Categorie3
+    if (r.D < 0.07) and (r.test_num_word)>=6 and (r.nn_num_word) >=6:
+        return r.Categorie3
+    return r.Id_Categorie
+
+
+def nn_guess_func_conservative(r):
+    if r.Produit_Cdiscount==0:
+         return r.Id_Categorie
     if (r.D < 0.05) and (r.test_num_word)>=4 and (r.nn_num_word) >=4:
         return r.Categorie3
     if (r.D < 0.07) and (r.test_num_word)>=6 and (r.nn_num_word) >=6:
@@ -75,19 +85,19 @@ def nn_guess_func_conservative(r):
 #         return r.Categorie3
 #     return r.Id_Categorie
 
-nn['guess'] = nn.apply(nn_guess_func_conservative,axis=1)
+nn['guess'] = nn.apply(nn_guess_func_ultra_conservative,axis=1)
 
 print 'nn correction = ', sum(nn.Id_Categorie != nn.guess)
 print 'D median = ',nn[(nn.Id_Categorie != nn.guess)].D.median()
 
 ### save diff for analysis ...
 diff = nn[nn.guess != nn.Id_Categorie]
-diff = diff[['Identifiant_Produit_test','Marque_test','Libelle_test','Description_test','Categorie3','D','test_num_word','Id_Categorie','Marque_nn','Libelle_nn','Description_nn','Identifiant_Produit_nn']]
+diff = diff[['Produit_Cdiscount','Identifiant_Produit_test','Marque_test','Libelle_test','Description_test','Categorie3','D','test_num_word','Id_Categorie','Marque_nn','Libelle_nn','Description_nn','Identifiant_Produit_nn']]
 rayon = pd.read_csv(ddir+'rayon.csv',sep=';')
 diff = diff.merge(rayon,'left','Categorie3')
 diff = diff.merge(rayon,'left',None,'Id_Categorie','Categorie3',suffixes=('_nn','_lr'))
 
-diff = diff[['Identifiant_Produit_test','Marque_test', 'Libelle_test', 'Description_test','Categorie3_Name_lr','Categorie3_Name_nn','D','test_num_word','Marque_nn','Libelle_nn','Description_nn','Identifiant_Produit_nn']]
+diff = diff[['Produit_Cdiscount','Identifiant_Produit_test','Marque_test', 'Libelle_test', 'Description_test','Categorie3_Name_lr','Categorie3_Name_nn','D','test_num_word','Marque_nn','Libelle_nn','Description_nn','Identifiant_Produit_nn']]
 diff.to_csv('nn_diff.csv',sep=';',index=False)
 
 ###################################
