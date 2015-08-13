@@ -3,7 +3,7 @@
 ##################################
 
 # FIRST PASS : QUERY from TEST and SEARCH to TRAIN : neighboring
-SEARCH_TXT=/home/ngaude/workspace/data/cdiscount/search_txt_full.tsv.3M
+SEARCH_TXT=/home/ngaude/workspace/data/cdiscount/search_txt.tsv
 
 QUERY_TXT=/home/ngaude/workspace/data/cdiscount/query_txt.tsv
 export LD_LIBRARY_PATH=/usr/local/lib/:/usr/lib/:/lib
