@@ -51,15 +51,20 @@ rayon = pd.read_csv(ddir+'rayon.csv',sep=';').fillna('ZZZ')
 rayon.Categorie3_Name = map(normalize_guess,rayon.Categorie3_Name.values)
 rayon.Categorie2_Name = map(normalize_guess,rayon.Categorie2_Name.values)
 rayon.Categorie1_Name = map(normalize_guess,rayon.Categorie1_Name.values)
+rayon = rayon[['Categorie1','Categorie3','Categorie3_Name']]
+
+
 
 test = pd.read_csv(ddir+'test.csv',sep=';').fillna('')
 add_txt(test)
 test.txt = map(normalize_guess,test.txt)
+test = test[['Identifiant_Produit','txt']]
 
 resultat = pd.read_csv(rname,sep=';')
 
 df = test.merge(resultat,'left',None,'Identifiant_Produit','Id_Produit')
-df = df.merge(rayon,'left',None,'Id_Categorie','Categorie3')
+df['Categorie3'] = df.Id_Categorie
+df = df.merge(rayon,'left','Categorie3')
 
 df['guess'] = map(lambda (i,r):all_guess(r),df.iterrows())
 #df['guess'] = df.Id_Categorie
