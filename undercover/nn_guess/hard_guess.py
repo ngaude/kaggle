@@ -14,7 +14,7 @@ from utils import cat3tocat2,cat3tocat1,cat2tocat1
 from utils import cat1count,cat2count,cat3count
 import sys
 
-ddir = '/home/ngaude/workspace/data/cdiscount.proba/'
+ddir = '/home/ngaude/workspace/data/cdiscount/'
 
 assert len(sys.argv) == 2  ##### usage guess.py $RESULTAT.CSV ####
 

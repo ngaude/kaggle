@@ -14,7 +14,7 @@ from utils import cat3tocat2,cat3tocat1,cat2tocat1
 from utils import cat1count,cat2count,cat3count
 import sys
 
-ddir = '/home/ngaude/workspace/data/cdiscount.proba/'
+ddir = '/home/ngaude/workspace/data/cdiscount/'
 
 assert len(sys.argv) == 2  ##### usage guess.py $RESULTAT.CSV ####
 rname  = sys.argv[1]
@@ -85,7 +85,7 @@ def nn_guess_func_conservative(r):
 #         return r.Categorie3
 #     return r.Id_Categorie
 
-nn['guess'] = nn.apply(nn_guess_func_ultra_conservative,axis=1)
+nn['guess'] = nn.apply(nn_guess_func_conservative,axis=1)
 
 print 'nn correction = ', sum(nn.Id_Categorie != nn.guess)
 print 'D median = ',nn[(nn.Id_Categorie != nn.guess)].D.median()
