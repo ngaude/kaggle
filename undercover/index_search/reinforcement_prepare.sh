@@ -12,7 +12,7 @@
 # sudo make install
 
 export LD_LIBRARY_PATH=/usr/local/lib/:/usr/lib:/lib
-SEARCH_TXT=/home/ngaude/workspace/data/cdiscount/search_txt_full.tsv.3M
+SEARCH_TXT=/home/ngaude/workspace/data/cdiscount/search_txt_self.tsv
 
 cd `dirname $SEARCH_TXT`
 

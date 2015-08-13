@@ -2,11 +2,8 @@
 # http://code.google.com/p/apporo/
 ##################################
 
-# FIRST PASS : QUERY from TEST and SEARCH to TRAIN : neighboring
-SEARCH_TXT=/home/ngaude/workspace/data/cdiscount/search_txt_full.tsv.3M
-
 # SECOND PASS : QUERY from TEST and SEARCH to TEST : clustering 
-#SEARCH_TXT=/home/ngaude/workspace/data/cdiscount/search_txt_self.tsv
+SEARCH_TXT=/home/ngaude/workspace/data/cdiscount/search_txt_self.tsv
 
 QUERY_TXT=/home/ngaude/workspace/data/cdiscount/query_txt.tsv
 export LD_LIBRARY_PATH=/usr/local/lib/:/usr/lib/:/lib
