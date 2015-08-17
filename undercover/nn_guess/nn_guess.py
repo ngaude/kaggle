@@ -44,8 +44,8 @@ nn['test_num_word'] = test_num_word;
 nn['nn_num_word'] = nn_num_word;
 
 def nn_guess_func_ultra_conservative(r):
-#    if r.Produit_Cdiscount==0:
-#         return r.Id_Categorie
+    if r.Produit_Cdiscount==0:
+         return r.Id_Categorie
     if (r.D < 0.05) and (r.test_num_word)>=4 and (r.nn_num_word) >=4:
         return r.Categorie3
     if (r.D < 0.07) and (r.test_num_word)>=6 and (r.nn_num_word) >=6:
@@ -85,7 +85,7 @@ def nn_guess_func_conservative(r):
 #         return r.Categorie3
 #     return r.Id_Categorie
 
-nn['guess'] = nn.apply(nn_guess_func_conservative,axis=1)
+nn['guess'] = nn.apply(nn_guess_func_ultra_conservative,axis=1)
 
 print 'nn correction = ', sum(nn.Id_Categorie != nn.guess)
 print 'D median = ',nn[(nn.Id_Categorie != nn.guess)].D.median()

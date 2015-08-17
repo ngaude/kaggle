@@ -16,7 +16,7 @@ while read line; do
     query_id=`echo $line | cut -d';' -f2`
     echo 'query:'$query_id
     echo '*****:'`basename $SEARCH_TXT`,$query_txt
-    apporo_searcher -i `basename $SEARCH_TXT` -s -p -r 7 -t 0.93 -q "$query_txt"
+    apporo_searcher -i `basename $SEARCH_TXT` -s -p -r 7 -t 0.9 -q "$query_txt"
     echo '*****************************************'
 done < $QUERY_TXT
 
