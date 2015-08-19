@@ -1,0 +1,34 @@
+# TODO
+# TODO
+# TODO
+# TODO
+
+# http://stackoverflow.com/questions/24634602/how-to-perform-logistic-regression-using-vowpal-wabbit
+# http://stackoverflow.com/questions/24634602/how-to-perform-logistic-regression-using-vowpal-wabbit
+#
+#
+
+
+# Prepare the training data
+grep '^-1' train.txt | shuf > neg.txt
+grep '^1' train.txt | shuf > p.txt
+for i in `seq 2000`; do cat p.txt; done > pos.txt
+paste -d '\n' neg.txt pos.txt > newtrain.txt
+
+# Train model.vw
+# Note that passes=1 is the default.
+# With one pass, holdout_off is the default.
+vw -d newtrain.txt --loss_function=logistic -f model.vw
+#average loss = 0.0953586
+
+# Compute test loss using vw
+vw -d test.txt -t -i model.vw --loss_function=logistic -r raw_predictions.txt
+#average loss = 0.0649306
+
+# Compute AUROC using http://osmot.cs.cornell.edu/kddcup/software.html
+cut -d ' ' -f 1 test.txt | sed -e 's/^-1/0/' > gold.txt
+$VW_HOME/utl/logistic -0 raw_predictions.txt > probabilities.txt
+perf -ROC -files gold.txt probabilities.txt 
+#ROC    0.83484
+perf -ROC -plot roc -files gold.txt probabilities.txt | head -n -2 > graph
+echo 'plot "graph"' | gnuplot -persist

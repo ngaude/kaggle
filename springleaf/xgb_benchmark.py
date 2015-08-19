@@ -5,8 +5,8 @@ from datetime import  datetime
 
 
 def get_data():
-    train = pd.read_csv("../input/train.csv")
-    test = pd.read_csv("../input/test.csv")
+    train = pd.read_csv("data/train.csv")
+    test = pd.read_csv("data/test.csv")
 
     features = train.select_dtypes(include=['float']).columns
     features = np.setdiff1d(features,['ID','target'])
