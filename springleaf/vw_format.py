@@ -14,7 +14,7 @@ with open('data/train.csv', 'rb') as finput, open('data/vw_train.dat','w') as fo
             print i
         if row[-1]=='0':
             label = '-1'
-        else
+        else:
             label = '1'
         uid = row[0]
         features = [header[j]+'_'+row[j].translate(None,' []_,-:').replace('-','M').replace('.','P') for j in range(1,len(row)-1)]
