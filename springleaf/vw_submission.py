@@ -4,7 +4,7 @@ import numpy as np
 df = pd.read_csv('data/sample_submission.csv')
 
 with open('data/vw_test.pred','r') as f:
-    target = [float(line)*0.5+0.5 for line in f]
+    target = [float(line) for line in f]
 
 df['target'] = target
 

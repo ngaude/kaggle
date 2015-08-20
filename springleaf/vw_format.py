@@ -1,9 +1,12 @@
 #!/usr/bin/python
 import csv
 
-with open('data/train.csv', 'rb') as finput, open('data/vw_train.dat','w') as foutput:
-    reader = csv.reader(finput, delimiter=',', quotechar='"')  
+with open('data/train.csv','rb') as f:
+    reader = csv.reader(f, delimiter=',', quotechar='"')  
     header = next(reader,None)
+
+with open('data/train.balanced.csv', 'rb') as finput, open('data/vw_train.dat','w') as foutput:
+    reader = csv.reader(finput, delimiter=',', quotechar='"')  
     i = 1
     for row in reader:
         if len(row) != 1934:
