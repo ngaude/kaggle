@@ -4,9 +4,11 @@ import numpy as np
 df = pd.read_csv('data/sample_submission.csv')
 
 with open('data/vw_test.pred','r') as f:
-    target = [float(line) for line in f]
+    target = [float(line.split()[0]) for line in f]
 
-df['target'] = target
+target  =  1./(1+np.exp(-np.array(target)))
+
+df['target'] = target 
 
 print 'average target',np.mean(target)
 
