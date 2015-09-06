@@ -6,7 +6,6 @@ import numpy as np
 ddir = '/home/ngaude/workspace/github/kaggle/springleaf/data/'
 
 df = pd.read_csv(ddir+'train.csv',sep=',')
-
 df = df.fillna(999999999)
 
 uid = df.ID.values
