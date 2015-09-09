@@ -47,7 +47,7 @@ delete_columns = c(delete_const,delete_NA,delete_ID)
 
 all = rbind(train,test)
 
-all=all[,!(names(all) %in% delete_columns]
+all=all[,!(names(all) %in% delete_columns)]
 
 # all <- rbind(train,test)
 # train_count <- lapply(train, function(x) length(unique(x)))
@@ -76,10 +76,29 @@ char_columns = c("VAR_0001","VAR_0005","VAR_0073","VAR_0075","VAR_0156","VAR_015
 
 categorical_columns_3 = c('VAR_0001','VAR_0005','VAR_0226','VAR_0230','VAR_0232','VAR_0236','VAR_0237','VAR_0274','VAR_0283','VAR_0305','VAR_0325','VAR_0342','VAR_0352','VAR_0353','VAR_0354','VAR_0466','VAR_0467','VAR_1934')
 
-
 categorical_columns = union(c(categorical_columns_1,categorical_columns_2),categorical_columns_3)
 continuous_columns = setdiff(names(all),union(categorical_columns,c("target","ID")))
 target_id_columns = c("target","ID")
+
+
+all_target_id <- all[,target_id_columns]
+
+all_category <- all[,categorical_columns]
+all_category[is.na(all_category)] <- 123456
+
+all_continuous <- all[,continuous_columns]
+
+save(all_target_id,file='all_target_id.Rda')
+save(all_category,file='all_category.Rda')
+save(all_continuous,file='all_continuous.Rda')
+
+######################################
+######################################
+### CATEGORICAL VARS ==> BINARY VARS
+######################################
+######################################
+
+load(file='all_category.Rda')
 
 ######################
 # character => integer
@@ -107,11 +126,98 @@ for (f in names(all_category))
 }
 
 all_binary <- data.frame(model.matrix(~.-1,all_category))
+gc()
 
-all <- cbind(all_target_id,all_binary,all_continuous)
+save(all_binary,file='./data/all_binary.Rda')
+
+#####################
+#####################
+# DIRTY WORK ....>>>
+#####################
+#####################
+# 
+# # filters all useless binary e.g. chisq too high >0.1 (e.g. independance is probable)
+# train_binary <- all_binary[1:145231,]
+# gc()
+# train_binary_count <- lapply(train_binary, function(x) length(unique(x)))
+# train_binary_delete_columns <- unlist(train_binary_count[unlist(train_binary_count)==1])
+# train_binary$VAR_023747 <- NULL
+# train_binary$VAR_02839 <- NULL
+# get_pvalue <- function(x)
+# {
+#     t = chisq.test(x,train$target)
+#     print(t)
+#     return(as.double(t[3]))
+# }
+# train_binary_pvalue <- lapply(train_binary,get_pvalue)
+# hist(t(data.frame(train_binary_pvalue)),breaks=1000,xlim=c(0,0.1))
+# threshold <- 0.02
+# 
+# binary_selected_columns <- names(train_binary[,train_binary_pvalue <threshold])
+# 
+# all_binary_selected <- all_binary[,binary_selected_columns]
+# 
+# save(all_binary_selected,file='./data/all_binary_selected.Rda')
+# 
+# 
+# all <- cbind(all_target_id,all_binary_selected,all_continuous)
+# 
+# train <- all[1:145231,]
+# test  <- all[145232:nrow(all),]
+# save(train,file='./data/train.Rda')
+# save(test,file='./data/test.Rda')
+# csv.write()
+# 
+# write.csv(names(all_binary_selected), file = "./data/binary_columns.csv",row.names=FALSE)
+# write.csv(names(all_continuous), file = "./data/continuous_columns.csv",row.names=FALSE)
+# 
+# DIRTY WORK ....<<<
+# DIRTY WORK ....<<<
+
+#######################
+# do the continuous smoothing of non relevant values... 
+# replaced by the column mean
+#######################
+
+#######################
+#######################
+replace_set = c(999999994,999999995,999999996,999999997,999999998,999999999,-99999,999999,9999,9998,9994,9995,9996,9997,9998,999,998,997,996,995,994,-1)
+
+m <- as.matrix(all_continuous)
+for (v in replace_set)
+{
+    print(v)
+    m[m==v] <- NA
+}
+gc()
+means <- colMeans(m, na.rm=TRUE)
+for (j in 1:ncol(m))
+{
+    m[is.na(m[, j]), j] <- means[j]
+}
+all_continuous <- as.data.frame(m)
+save(all_continuous,file='all_continuous.Rda')
+
+##########################
+##########################
+##########################
+##########################
+# JOIN EVERY THING ....
+##########################
+##########################
+##########################
+
+load(file='all_continuous.Rda')
+load(file='all_target_id.Rda')
+load(file='all_binary.Rda')
+
+
+all <- cbind(all_target_id,all_binary_selected,all_continuous)
+
 
 train <- all[all$target<2,]
 test  <- all[all$target==2,]
+
 save(train,file='./data/train.Rda')
 save(test,file='./data/test.Rda')
 
@@ -119,7 +225,13 @@ save(test,file='./data/test.Rda')
 ######################################
 ######################################
 ######################################
-# HERE HERE HERE
+# XGB XGB
+# XGB XGB
+# XGB XGB
+# XGB XGB
+# XGB XGB
+# XGB XGB
+# XGB XGB
 ######################################
 ######################################
 ######################################
@@ -128,6 +240,7 @@ library(readr)
 library(xgboost)
 
 set.seed(721) 
+set.seed(15111975) # alternative one...
 
 load(file='./data/train.Rda')
 
@@ -199,41 +312,18 @@ watchlist <- watchlist <- list(eval = dval, train = dtrain)
 #                     watchlist           = watchlist,
 #                     maximize            = TRUE)
 
-# this one leads to 0.79351
-# param <- list(  objective           = "binary:logistic", 
-#                 # booster = "gblinear",
-#                 eta                 = 0.025, #0.06, #0.01,
-#                 max_depth           = 11,  # changed from default of 8
-#                 subsample           = 0.7,
-#                 colsample_bytree    = 0.7,
-#                 min_child_weight    = 7,
-#                 gamma               = 2,
-#                 eval_metric         = "auc"
-#                 # alpha = 0.0001, 
-#                 # lambda = 1
-#                 )
-# 
-# clf <- xgb.train(   params              = param, 
-#                     data                = dtrain, 
-#                     nrounds             = 800, #280, #125, #250, # changed from 300
-#                     verbose             = 2, 
-#                     early.stop.round    = NULL,
-#                     watchlist           = watchlist,
-#                     maximize            = TRUE)
-# 
-
-# this one leads to 0.79351
+# this one leads to 0.79351 (0.79107 with selected binary features... too bad)
 param <- list(  objective           = "binary:logistic", 
                 # booster = "gblinear",
-                eta                 = 0.02, #0.06, #0.01,
-                max_depth           = 10,  # changed from default of 8
-                subsample           = 0.5,
-                colsample_bytree    = 0.5,
+                eta                 = 0.025, #0.06, #0.01,
+                max_depth           = 11,  # changed from default of 8
+                subsample           = 0.7,
+                colsample_bytree    = 0.7,
                 min_child_weight    = 7,
-                gamma               = 1,
-                eval_metric         = "auc",
+                gamma               = 2,
+                eval_metric         = "auc"
                 # alpha = 0.0001, 
-                lambda = 1
+                # lambda = 1
                 )
 
 clf <- xgb.train(   params              = param, 
@@ -244,6 +334,29 @@ clf <- xgb.train(   params              = param,
                     watchlist           = watchlist,
                     maximize            = TRUE)
 
+
+# this one leads to 0.79226 (eval-auc:0.786996)
+# param <- list(  objective           = "binary:logistic", 
+#                 # booster = "gblinear",
+#                 eta                 = 0.02, #0.06, #0.01,
+#                 max_depth           = 10,  # changed from default of 8
+#                 subsample           = 0.5,
+#                 colsample_bytree    = 0.5,
+#                 min_child_weight    = 7,
+#                 gamma               = 1,
+#                 eval_metric         = "auc",
+#                 # alpha = 0.0001, 
+#                 lambda = 1
+#                 )
+# 
+# clf <- xgb.train(   params              = param, 
+#                     data                = dtrain, 
+#                     nrounds             = 800, #280, #125, #250, # changed from 300
+#                     verbose             = 2, 
+#                     early.stop.round    = NULL,
+#                     watchlist           = watchlist,
+#                     maximize            = TRUE)
+# 
 
 
 
@@ -256,6 +369,11 @@ gc()
 
 load(file='./data/test.Rda')
 
+### malencontreux probleme de substitution , all apologize...
+test$ID[4863] <- 9994
+test$ID[4864] <- 9996
+test$ID[4865] <- 9997
+test$ID[492] <- 997
 
 submission <- data.frame(ID=test$ID)
 submission$target <- NA 
@@ -264,6 +382,7 @@ for (rows in split(1:nrow(test), ceiling((1:nrow(test))/10000)))
     print(max(rows))
     submission[rows, "target"] <- predict(clf, data.matrix(test[rows,feature.names]))
 }
+
 cat("saving the test submission file\n")
 write_csv(submission, "./data/xgb_test.csv")
 

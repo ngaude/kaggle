@@ -3,40 +3,31 @@ import numpy as np
 
 ddir = '/home/ngaude/workspace/github/kaggle/springleaf/data/'
 
-df3 = pd.read_csv(ddir+'resultat3.csv',sep=',')
-df4 = pd.read_csv(ddir+'resultat4.csv',sep=',')
-df5 = pd.read_csv(ddir+'resultat5.csv',sep=',')
-df6 = pd.read_csv(ddir+'resultat6.csv',sep=',')
-df7 = pd.read_csv(ddir+'resultat7.csv',sep=',')
-df8 = pd.read_csv(ddir+'resultat8.csv',sep=',')
-df9 = pd.read_csv(ddir+'resultat9.csv',sep=',')
-xgb3 = pd.read_csv(ddir+'xgb3.csv',sep=',')
-xgb8 = pd.read_csv(ddir+'xgb8.csv',sep=',')
-xgbnikko = pd.read_csv(ddir+'xgb_nikko.csv',sep=',')
+files = [
+    'xgb_nikko_4.csv',
+    'xgb_nikko_5.csv',
+    'xgb_nikko_6.csv',
+    'xgb_nikko_7.csv',
+    'xgb_nikko_8.csv']
 
-n = 145232
+dfs = [ pd.read_csv(ddir+f) for f in files]
 
-Y = np.zeros(shape=(n,10),dtype=float)
+n = len(dfs[0])
+m = len(dfs)
 
-Y[:,0] = df3.target
-Y[:,1] = df4.target
-Y[:,2] = df5.target
-Y[:,3] = df6.target
-Y[:,4] = df7.target
-Y[:,5] = df8.target
-Y[:,6] = df9.target
-Y[:,7] = xgb3.target
-Y[:,8] = xgb8.target
-Y[:,9] = xgbnikko.target
+Y = np.zeros(shape=(n,m),dtype=float)
+
+for i in range(m):
+    Y[:,i] = dfs[i].target
 
 target = np.median(Y,axis=1)
 
-df = pd.DataFrame(df3)
+df = pd.DataFrame(dfs[0])
 df.target = target
 
 print 'average target',np.mean(target)
 
-df.to_csv(ddir+'blending.csv',index=False)
+df.to_csv(ddir+'xgb_blending.csv',index=False)
 
 low = np.min(Y,axis=1)>0.5
 high = np.max(Y,axis=1)>0.5
