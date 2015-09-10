@@ -8,7 +8,10 @@ files = [
     'xgb_nikko_5.csv',
     'xgb_nikko_6.csv',
     'xgb_nikko_7.csv',
-    'xgb_nikko_8.csv']
+    'xgb_nikko_8.csv',
+    'xgb_nikko_9.csv',
+    'xgb_nikko_10.csv',
+    'xgb_nikko_11.csv']
 
 dfs = [ pd.read_csv(ddir+f) for f in files]
 
@@ -36,7 +39,7 @@ confidence = (low==high) & (high==True)
 ##################
 # confidence-cooking : best e.g. xgb3 with rounded [0,1] if confidence is true.
 
-target = xgb3.target
+target = df.target
 import matplotlib.pyplot as plt
 plt.hist([target[i] for i in range(n) if confidence[i]==True],bins=100,label='certainty',alpha=0.5)
 plt.hist([target[i] for i in range(n) if confidence[i]==False],bins=100,label='doubt',alpha=0.5)

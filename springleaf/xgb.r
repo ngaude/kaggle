@@ -113,50 +113,24 @@ save(char_columns,file='./data/char_columns.Rda')
 # normalize them
 ##########################
 
+load(file='./data/delete_columns.Rda')
 load(file='./data/char_columns.Rda')
 load(file='./data/category_columns.Rda')
-continuous_columns <- setdiff(names(all),c(category_columns,char_columns,target_id_columns))
+continuous_columns <- setdiff(names(all),c(category_columns,char_columns,target_id_columns,delete_columns))
 all_continuous <- all[,continuous_columns]
-replace_set = c(NA,999999994,999999995,999999996,999999997,999999998,999999999,-99999,999999,9999,9998,9994,9995,9996,9997,9998,999,998,997,996,995,994)
+replace_set = c(999999994,999999995,999999996,999999997,999999998,999999999,-99999,999999,9999,9998,9994,9995,9996,9997,9998,999,998,997,996,995,994,99,-1)
 
 for (f in names(all_continuous))
 {
-    mean_value = mean(all_continuous[[f]], na.rm = TRUE)
-    print(c(f,mean_value))
-    replace_me = (all_continuous[[f]] %in% replace_set)
-    all_continuous[replace_me,f] <- mean_value
+    v = all_continuous[[f]]
+    v[v %in% replace_set] <- NA
+    v[is.na(v)] = mean(v, na.rm = TRUE)
+    all_continuous[[f]] <- scale(v)
+    print(c(f,min(v),max(v)))
 }
 
-na
-VAR_0840
-VAR_0216
-VAR_0229
-VAR_0196
-
-VAR_0213
-VAR_0214
-VAR_0207
-
-0
-VAR_0438
-VAR_0446
-VAR_0394
-
-{
-m <- as.matrix(all_continuous)
-for (v in replace_set)
-{
-    print(v)
-    m[m==v] <- NA
-}
-gc()
-means <- colMeans(as.double(m), na.rm=TRUE)
-for (j in 1:ncol(m))
-{
-    m[is.na(m[, j]), j] <- means[j]
-}
-all_continuous <- as.data.frame(m)
 save(all_continuous,file='./data/all_continuous.Rda')
+save(continuous_columns,file='./data/continuous_columns.Rda')
 
 ##########################
 ##########################
@@ -171,9 +145,7 @@ load(file='./data/all_continuous.Rda')
 load(file='./data/all_target_id.Rda')
 load(file='./data/all_binary.Rda')
 
-
-all <- cbind(all_target_id,all_binary_selected,all_continuous)
-
+all <- cbind(all_target_id,all_binary,all_continuous)
 
 train <- all[all$target<2,]
 test  <- all[all$target==2,]
@@ -217,29 +189,27 @@ gc()
 watchlist <- watchlist <- list(eval = dval, train = dtrain)
 
 # this one leads to 0.078975
+param <- list(  objective           = "binary:logistic", 
+                # booster = "gblinear",
+                eta                 = 0.025, #0.06, #0.01,
+                max_depth           = 11,  # changed from default of 8
+                subsample           = 0.7,
+                colsample_bytree    = 0.7,
+                eval_metric         = "auc"
+                # alpha = 0.0001, 
+                # lambda = 1
+                )
 
-# param <- list(  objective           = "binary:logistic", 
-#                 # booster = "gblinear",
-#                 eta                 = 0.025, #0.06, #0.01,
-#                 max_depth           = 11,  # changed from default of 8
-#                 subsample           = 0.7,
-#                 colsample_bytree    = 0.7,
-#                 eval_metric         = "auc"
-#                 # alpha = 0.0001, 
-#                 # lambda = 1
-#                 )
-# 
-# clf <- xgb.train(   params              = param, 
-#                     data                = dtrain, 
-#                     nrounds             = 366, #300, #280, #125, #250, # changed from 300
-#                     verbose             = 2, 
-#                     early.stop.round    = 5,
-#                     watchlist           = watchlist,
-#                     maximize            = TRUE)
+clf <- xgb.train(   params              = param, 
+                    data                = dtrain, 
+                    nrounds             = 800,
+                    verbose             = 2, 
+                    early.stop.round    = NULL,
+                    watchlist           = watchlist,
+                    maximize            = TRUE)
 
 
-# this one leads to 0.79037
-#
+# (eval-auc:0.792568	train-auc:0.925411) 800 nrounds : 0.79248
 # param <- list(  objective           = "binary:logistic", 
 #                 # booster = "gblinear",
 #                 eta                 = 0.015, #0.06, #0.01,
@@ -256,36 +226,38 @@ watchlist <- watchlist <- list(eval = dval, train = dtrain)
 # 
 # clf <- xgb.train(   params              = param, 
 #                     data                = dtrain, 
-#                     nrounds             = 800, #280, #125, #250, # changed from 300
+#                     nrounds             = 800,
 #                     verbose             = 2, 
-#                     early.stop.round    = 10,
+#                     early.stop.round    = NULL,
 #                     watchlist           = watchlist,
 #                     maximize            = TRUE)
 
-# this one leads to 0.79351 (0.79107 with selected binary features... too bad)
-param <- list(  objective           = "binary:logistic", 
-                # booster = "gblinear",
-                eta                 = 0.025, #0.06, #0.01,
-                max_depth           = 11,  # changed from default of 8
-                subsample           = 0.7,
-                colsample_bytree    = 0.7,
-                min_child_weight    = 7,
-                gamma               = 2,
-                eval_metric         = "auc"
-                # alpha = 0.0001, 
-                # lambda = 1
-                )
+# (eval-auc:0.794843	train-auc:0.992240) 800 nrounds : 0.79452
+# 
+# param <- list(  objective           = "binary:logistic", 
+#                 # booster = "gblinear",
+#                 eta                 = 0.025,
+#                 max_depth           = 11,
+#                 subsample           = 0.7,
+#                 colsample_bytree    = 0.7,
+#                 min_child_weight    = 7,
+#                 gamma               = 2,
+#                 eval_metric         = "auc"
+#                 # alpha = 0.0001, 
+#                 # lambda = 1
+#                 )
+# 
+# clf <- xgb.train(   params              = param, 
+#                     data                = dtrain, 
+#                     nrounds             = 800,
+#                     verbose             = 2, 
+#                     early.stop.round    = NULL,
+#                     watchlist           = watchlist,
+#                     maximize            = TRUE)
 
-clf <- xgb.train(   params              = param, 
-                    data                = dtrain, 
-                    nrounds             = 800, #280, #125, #250, # changed from 300
-                    verbose             = 2, 
-                    early.stop.round    = NULL,
-                    watchlist           = watchlist,
-                    maximize            = TRUE)
 
-
-# this one leads to 0.79226 (eval-auc:0.786996)
+# (eval-auc:0.793176	train-auc:0.959704) 800 nrounds : 0.79330
+#
 # param <- list(  objective           = "binary:logistic", 
 #                 # booster = "gblinear",
 #                 eta                 = 0.02, #0.06, #0.01,
@@ -301,12 +273,12 @@ clf <- xgb.train(   params              = param,
 # 
 # clf <- xgb.train(   params              = param, 
 #                     data                = dtrain, 
-#                     nrounds             = 800, #280, #125, #250, # changed from 300
+#                     nrounds             = 800,
 #                     verbose             = 2, 
 #                     early.stop.round    = NULL,
 #                     watchlist           = watchlist,
 #                     maximize            = TRUE)
-# 
+
 
 
 
@@ -318,12 +290,6 @@ dval=0
 gc()
 
 load(file='./data/test.Rda')
-
-### malencontreux probleme de substitution , all apologize...
-test$ID[4863] <- 9994
-test$ID[4864] <- 9996
-test$ID[4865] <- 9997
-test$ID[492] <- 997
 
 submission <- data.frame(ID=test$ID)
 submission$target <- NA 
