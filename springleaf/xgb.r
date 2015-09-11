@@ -189,27 +189,29 @@ gc()
 watchlist <- watchlist <- list(eval = dval, train = dtrain)
 
 # this one leads to 0.078975
-param <- list(  objective           = "binary:logistic", 
-                # booster = "gblinear",
-                eta                 = 0.025, #0.06, #0.01,
-                max_depth           = 11,  # changed from default of 8
-                subsample           = 0.7,
-                colsample_bytree    = 0.7,
-                eval_metric         = "auc"
-                # alpha = 0.0001, 
-                # lambda = 1
-                )
-
-clf <- xgb.train(   params              = param, 
-                    data                = dtrain, 
-                    nrounds             = 800,
-                    verbose             = 2, 
-                    early.stop.round    = NULL,
-                    watchlist           = watchlist,
-                    maximize            = TRUE)
+# (eval-auc:0.794878	train-auc:0.999710) 800 nrounds (xgb_12.csv) :
+# param <- list(  objective           = "binary:logistic", 
+#                 # booster = "gblinear",
+#                 eta                 = 0.025, #0.06, #0.01,
+#                 max_depth           = 11,  # changed from default of 8
+#                 subsample           = 0.7,
+#                 colsample_bytree    = 0.7,
+#                 eval_metric         = "auc"
+#                 # alpha = 0.0001, 
+#                 # lambda = 1
+#                 )
+# 
+# clf <- xgb.train(   params              = param, 
+#                     data                = dtrain, 
+#                     nrounds             = 800,
+#                     verbose             = 2, 
+#                     early.stop.round    = NULL,
+#                     watchlist           = watchlist,
+#                     maximize            = TRUE)
 
 
 # (eval-auc:0.792568	train-auc:0.925411) 800 nrounds : 0.79248
+# [2999]	eval-auc:0.796404	train-auc:0.990794 (xgb_nikko_14.csv) : ??? 
 # param <- list(  objective           = "binary:logistic", 
 #                 # booster = "gblinear",
 #                 eta                 = 0.015, #0.06, #0.01,
@@ -226,38 +228,39 @@ clf <- xgb.train(   params              = param,
 # 
 # clf <- xgb.train(   params              = param, 
 #                     data                = dtrain, 
-#                     nrounds             = 800,
+#                     nrounds             = 3000,
 #                     verbose             = 2, 
 #                     early.stop.round    = NULL,
 #                     watchlist           = watchlist,
 #                     maximize            = TRUE)
 
-# (eval-auc:0.794843	train-auc:0.992240) 800 nrounds : 0.79452
-# 
-# param <- list(  objective           = "binary:logistic", 
-#                 # booster = "gblinear",
-#                 eta                 = 0.025,
-#                 max_depth           = 11,
-#                 subsample           = 0.7,
-#                 colsample_bytree    = 0.7,
-#                 min_child_weight    = 7,
-#                 gamma               = 2,
-#                 eval_metric         = "auc"
-#                 # alpha = 0.0001, 
-#                 # lambda = 1
-#                 )
-# 
-# clf <- xgb.train(   params              = param, 
-#                     data                = dtrain, 
-#                     nrounds             = 800,
-#                     verbose             = 2, 
-#                     early.stop.round    = NULL,
-#                     watchlist           = watchlist,
-#                     maximize            = TRUE)
+# [800]     eval-auc:0.794843	train-auc:0.992240 : 0.79452
+# [1358]    eval-auc:0.796350	train-auc:0.999144 : ??????? (xgb_nikko_15.csv)
+
+param <- list(  objective           = "binary:logistic", 
+                # booster = "gblinear",
+                eta                 = 0.025,
+                max_depth           = 11,
+                subsample           = 0.7,
+                colsample_bytree    = 0.7,
+                min_child_weight    = 7,
+                gamma               = 2,
+                eval_metric         = "auc"
+                # alpha = 0.0001, 
+                # lambda = 1
+                )
+
+clf <- xgb.train(   params              = param, 
+                    data                = dtrain, 
+                    nrounds             = 1400,
+                    verbose             = 2, 
+                    early.stop.round    = NULL,
+                    watchlist           = watchlist,
+                    maximize            = TRUE)
 
 
 # (eval-auc:0.793176	train-auc:0.959704) 800 nrounds : 0.79330
-#
+# [2999]	eval-auc:0.793908	train-auc:0.999801 (xgb_nikko_13.csv) : ??? 
 # param <- list(  objective           = "binary:logistic", 
 #                 # booster = "gblinear",
 #                 eta                 = 0.02, #0.06, #0.01,
@@ -273,12 +276,12 @@ clf <- xgb.train(   params              = param,
 # 
 # clf <- xgb.train(   params              = param, 
 #                     data                = dtrain, 
-#                     nrounds             = 800,
+#                     nrounds             = 3000,
 #                     verbose             = 2, 
 #                     early.stop.round    = NULL,
 #                     watchlist           = watchlist,
 #                     maximize            = TRUE)
-
+# 
 
 
 
