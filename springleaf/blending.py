@@ -4,17 +4,13 @@ import numpy as np
 ddir = '/home/ngaude/workspace/github/kaggle/springleaf/data/'
 
 files = [
-    'xgb_nikko_4.csv',
-    'xgb_nikko_5.csv',
-    'xgb_nikko_6.csv',
-    'xgb_nikko_7.csv',
-    'xgb_nikko_8.csv',
-    'xgb_nikko_9.csv',
-    'xgb_nikko_10.csv',
-    'xgb_nikko_11.csv',
-    'xgb_nikko_12.csv',
-    'xgb_nikko_13.csv',
-    'xgb_nikko_14.csv']
+'xgb_nikko_10.csv',
+'xgb_nikko_12.csv',
+'xgb_nikko_13.csv',
+'xgb_nikko_14.csv',
+'xgb_nikko_15.csv',
+'xgb_nikko_6.csv',
+'xgb_nikko_9.csv']
 
 dfs = [ pd.read_csv(ddir+f) for f in files]
 
@@ -27,6 +23,7 @@ for i in range(m):
     Y[:,i] = dfs[i].target
 
 target = np.median(Y,axis=1)
+target = np.mean(Y,axis=1)
 
 df = pd.DataFrame(dfs[0])
 df.target = target
